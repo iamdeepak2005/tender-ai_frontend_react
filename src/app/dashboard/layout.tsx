@@ -6,7 +6,7 @@ import { DashboardHeader } from '@/components/dashboard/header';
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider>
-      <Sidebar>
+      <Sidebar collapsible="icon">
         <SidebarContent />
       </Sidebar>
       <SidebarInset>
