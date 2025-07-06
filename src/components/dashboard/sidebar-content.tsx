@@ -20,6 +20,7 @@ import {
   PenSquare,
   Clock,
   MessageSquare,
+  Signal,
 } from "lucide-react";
 import Link from "next/link";
 import { UserNav } from "./user-nav";
@@ -31,6 +32,14 @@ const mockTenders = [
   "Bridge Repair in Texas",
   "Park Development in Florida",
   "Water Treatment Plant in WA",
+];
+
+const mockLiveTenders = [
+  "Live: City Hall Renovation",
+  "Live: Highway 101 Expansion",
+  "Live: New Public Library IT Setup",
+  "Live: Downtown Metro Line Extension",
+  "Live: Solar Panel Installation for Schools",
 ];
 
 const mockQueries = [
@@ -80,7 +89,7 @@ export function SidebarContent() {
           <Accordion
             type="multiple"
             className="w-full"
-            defaultValue={["recent", "favorite", "recommended", "history"]}
+            defaultValue={["recent", "live", "favorite", "recommended", "history"]}
           >
             <AccordionItem value="recent">
               <AccordionTrigger className="group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:px-2 [&>svg]:group-data-[state=collapsed]:hidden">
@@ -96,6 +105,31 @@ export function SidebarContent() {
                   {mockTenders.map((tender, i) => (
                     <li
                       key={`recent-${i}`}
+                      className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      <FileText className="h-4 w-4 shrink-0" />
+                      <a href="#" className="truncate">
+                        {tender}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="live">
+              <AccordionTrigger className="group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:px-2 [&>svg]:group-data-[state=collapsed]:hidden">
+                <div className="flex items-center gap-2">
+                  <Signal className="h-4 w-4 shrink-0 text-accent" />
+                  <span className="group-data-[state=collapsed]:hidden">
+                    Live Tenders
+                  </span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="group-data-[state=collapsed]:hidden">
+                <ul className="space-y-2 py-2 pl-6">
+                  {mockLiveTenders.map((tender, i) => (
+                    <li
+                      key={`live-${i}`}
                       className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
                     >
                       <FileText className="h-4 w-4 shrink-0" />
