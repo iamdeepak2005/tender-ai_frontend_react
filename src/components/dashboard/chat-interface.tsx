@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { CornerDownLeft, Loader2, Mic, MicOff, Paperclip, Camera as CameraIcon, ImageUp, X, Wrench, FileText, Info, HelpCircle, Globe } from "lucide-react";
+import { CornerDownLeft, Loader2, Mic, MicOff, Paperclip, Camera as CameraIcon, ImageUp, X, Wrench, FileText, Info, HelpCircle, Globe, Check } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { QuerySuggestions } from "./query-suggestions";
@@ -41,6 +41,25 @@ export function ChatInterface() {
   const [attachment, setAttachment] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+
+  const [selectedTool, setSelectedTool] = useState<string | null>(null);
+  const [isToolPopoverOpen, setIsToolPopoverOpen] = useState(false);
+
+  const handleToolSelect = (tool: string) => {
+    if (selectedTool === tool) {
+      setSelectedTool(null);
+    } else {
+      setSelectedTool(tool);
+    }
+    setIsToolPopoverOpen(false);
+  };
+
+  const tools = [
+    { name: 'Summary', icon: FileText },
+    { name: 'Details', icon: Info },
+    { name: 'Prebid Queries', icon: HelpCircle },
+    { name: 'Search the Web', icon: Globe },
+  ];
 
 
   useEffect(() => {
@@ -137,6 +156,7 @@ export function ChatInterface() {
     if ((!query.trim() && !image) || isLoading) return;
 
     setIsLoading(true);
+    const queryWithTool = selectedTool ? `${selectedTool}: ${query}` : query;
     setInput("");
     setAttachment(null);
     
@@ -151,7 +171,7 @@ export function ChatInterface() {
             className="rounded-md mb-2 object-cover max-w-full h-auto"
           />
         )}
-        {query && <p>{highlightTags(query)}</p>}
+        {query && <p>{highlightTags(queryWithTool)}</p>}
       </>
     );
 
@@ -161,6 +181,7 @@ export function ChatInterface() {
       role: "user",
     };
     setMessages((prev) => [...prev, userMessage]);
+    setSelectedTool(null);
 
     const loadingMessage: Message = {
       id: (Date.now() + 1).toString(),
@@ -170,7 +191,7 @@ export function ChatInterface() {
     setMessages((prev) => [...prev, loadingMessage]);
 
     try {
-      const result = await tenderQueryTool({ query, imageDataUri: image || undefined });
+      const result = await tenderQueryTool({ query: queryWithTool, imageDataUri: image || undefined });
       const assistantMessage: Message = {
         id: loadingMessage.id,
         content: <p>{result.tenderInfo}</p>,
@@ -268,7 +289,7 @@ export function ChatInterface() {
                       value={input}
                       onChange={handleInputChange}
                       placeholder={isListening ? "Listening..." : "Ask about tenders... Type @ for tags."}
-                      className="min-h-12 resize-none border-0 p-3 pl-24 pr-24 shadow-none focus-visible:ring-0"
+                      className="min-h-12 resize-none border-0 p-3 pl-24 shadow-none focus-visible:ring-0"
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
                           e.preventDefault();
@@ -299,30 +320,28 @@ export function ChatInterface() {
                     </PopoverContent>
                   </Popover>
 
-                  <Popover>
+                  <Popover open={isToolPopoverOpen} onOpenChange={setIsToolPopoverOpen}>
                     <PopoverTrigger asChild>
-                        <Button type="button" size="icon" variant="ghost">
+                        <Button type="button" size="icon" variant={selectedTool ? "secondary" : "ghost"}>
                         <Wrench className="h-4 w-4" />
                         <span className="sr-only">Tools</span>
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-56 p-2 mb-2" side="top" align="start">
-                        <Button variant="ghost" className="w-full justify-start text-sm p-2 gap-2">
-                            <FileText className="h-4 w-4" />
-                            Summary
+                      {tools.map((tool) => (
+                        <Button
+                          key={tool.name}
+                          variant="ghost"
+                          className="w-full justify-between text-sm p-2 gap-2"
+                          onClick={() => handleToolSelect(tool.name)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <tool.icon className="h-4 w-4" />
+                            <span>{tool.name}</span>
+                          </div>
+                          {selectedTool === tool.name && <Check className="h-4 w-4" />}
                         </Button>
-                        <Button variant="ghost" className="w-full justify-start text-sm p-2 gap-2">
-                            <Info className="h-4 w-4" />
-                            Details
-                        </Button>
-                        <Button variant="ghost" className="w-full justify-start text-sm p-2 gap-2">
-                            <HelpCircle className="h-4 w-4" />
-                            Prebid Queries
-                        </Button>
-                        <Button variant="ghost" className="w-full justify-start text-sm p-2 gap-2">
-                            <Globe className="h-4 w-4" />
-                            Search the Web
-                        </Button>
+                      ))}
                     </PopoverContent>
                   </Popover>
                 </div>
