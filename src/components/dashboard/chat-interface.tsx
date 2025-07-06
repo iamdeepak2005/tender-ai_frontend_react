@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { CornerDownLeft, Loader2, Mic, MicOff, Paperclip, Camera as CameraIcon, ImageUp, X } from "lucide-react";
+import { CornerDownLeft, Loader2, Mic, MicOff, Paperclip, Camera as CameraIcon, ImageUp, X, Wrench, FileText, Info, HelpCircle, Globe } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { QuerySuggestions } from "./query-suggestions";
@@ -268,7 +268,7 @@ export function ChatInterface() {
                       value={input}
                       onChange={handleInputChange}
                       placeholder={isListening ? "Listening..." : "Ask about tenders... Type @ for tags."}
-                      className="min-h-12 resize-none border-0 p-3 pl-12 pr-24 shadow-none focus-visible:ring-0"
+                      className="min-h-12 resize-none border-0 p-3 pl-24 pr-24 shadow-none focus-visible:ring-0"
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
                           e.preventDefault();
@@ -279,7 +279,7 @@ export function ChatInterface() {
                     />
                   </PopoverAnchor>
                 
-                <div className="absolute left-1.5 top-2.5">
+                <div className="absolute left-1.5 top-2.5 flex items-center">
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button type="button" size="icon" variant="ghost">
@@ -298,9 +298,36 @@ export function ChatInterface() {
                       </Button>
                     </PopoverContent>
                   </Popover>
+
+                  <Popover>
+                    <PopoverTrigger asChild>
+                        <Button type="button" size="icon" variant="ghost">
+                        <Wrench className="h-4 w-4" />
+                        <span className="sr-only">Tools</span>
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-2 mb-2" side="top" align="start">
+                        <Button variant="ghost" className="w-full justify-start text-sm p-2 gap-2">
+                            <FileText className="h-4 w-4" />
+                            Summary
+                        </Button>
+                        <Button variant="ghost" className="w-full justify-start text-sm p-2 gap-2">
+                            <Info className="h-4 w-4" />
+                            Details
+                        </Button>
+                        <Button variant="ghost" className="w-full justify-start text-sm p-2 gap-2">
+                            <HelpCircle className="h-4 w-4" />
+                            Prebid Queries
+                        </Button>
+                        <Button variant="ghost" className="w-full justify-start text-sm p-2 gap-2">
+                            <Globe className="h-4 w-4" />
+                            Search the Web
+                        </Button>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
-                <div className="absolute right-2 top-3 flex items-center gap-1">
+                <div className="absolute right-2 top-2.5 flex items-center gap-1">
                   <Button
                     type="button"
                     size="icon"
