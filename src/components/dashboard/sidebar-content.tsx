@@ -89,7 +89,6 @@ export function SidebarContent() {
           <Accordion
             type="multiple"
             className="w-full"
-            defaultValue={["recent", "live", "favorite", "recommended", "history"]}
           >
             <AccordionItem value="recent">
               <AccordionTrigger className="group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:px-2 [&>svg]:group-data-[state=collapsed]:hidden">
