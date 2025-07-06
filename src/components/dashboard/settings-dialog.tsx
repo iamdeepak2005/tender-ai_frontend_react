@@ -8,8 +8,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -23,7 +21,16 @@ import {
   Settings,
   Wand2,
   Play,
+  HelpCircle,
+  ChevronRight,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 
 interface SettingsDialogProps {
   open: boolean;
@@ -148,28 +155,53 @@ function GeneralSettings() {
 function PersonalizationSettings() {
     return (
         <div className="space-y-6">
-            <div className="space-y-1">
-                <h2 className="text-xl font-semibold">Personalization</h2>
-                <p className="text-zinc-400">Update your personal information and preferences.</p>
+            <div className="space-y-4">
+                <h2 className="text-xl font-semibold">Customization</h2>
+                <SettingsItem title="Custom instructions">
+                    <Button variant="ghost" className="flex items-center gap-1 text-zinc-400 p-0 h-auto hover:text-white">
+                        <span>On</span>
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </SettingsItem>
             </div>
-            <Separator className="bg-zinc-700"/>
-            <form className="space-y-6">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" defaultValue="Current User" className="bg-zinc-800 border-zinc-600" />
+
+            <Separator className="bg-zinc-700" />
+            
+            <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-semibold">Memory</h2>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger>
+                                <HelpCircle className="h-4 w-4 text-zinc-400" />
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-zinc-800 text-white border-zinc-700 max-w-xs">
+                                <p>Memory helps TenderAI remember details from your conversations to be more helpful. You control it.</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue="user@example.com" disabled className="bg-zinc-800 border-zinc-600"/>
+                <div className="space-y-6">
+                    <SettingsItem title="Reference saved memories" description="Let TenderAI save and use memories when responding.">
+                        <Switch defaultChecked={true} />
+                    </SettingsItem>
+                    <SettingsItem title="Reference chat history" description="Let TenderAI reference recent conversations when responding.">
+                        <Switch defaultChecked={true} />
+                    </SettingsItem>
+                    <SettingsItem title="Manage memories">
+                        <Button variant="outline" className="bg-zinc-800 border-zinc-600 hover:bg-zinc-700">Manage</Button>
+                    </SettingsItem>
                 </div>
-                 <div className="grid gap-2">
-                  <Label htmlFor="preferences">Tender Preferences</Label>
-                  <Input id="preferences" placeholder="e.g. Construction, IT, California" className="bg-zinc-800 border-zinc-600" />
-                </div>
-                <Button type="submit">Save Changes</Button>
-            </form>
+            </div>
+
+            <p className="text-xs text-zinc-500 !mt-8">
+                TenderAI may use Memory to personalize queries to search providers.{" "}
+                <a href="#" className="underline hover:text-zinc-400">
+                Learn more
+                </a>
+            </p>
         </div>
-      );
+    );
 }
 
 
