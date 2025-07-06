@@ -21,12 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import {
   Settings,
-  Bell,
   Wand2,
-  AppWindow,
-  Database,
-  Shield,
-  CircleUser,
   Play,
 } from "lucide-react";
 
@@ -35,19 +30,14 @@ interface SettingsDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type TabId = "general" | "notifications" | "personalization" | "connected-apps" | "data-controls" | "security" | "account";
+type TabId = "general" | "personalization";
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [activeTab, setActiveTab] = useState<TabId>("general");
 
   const tabs = [
     { id: "general", label: "General", icon: Settings },
-    { id: "notifications", label: "Notifications", icon: Bell },
     { id: "personalization", label: "Personalization", icon: Wand2 },
-    { id: "connected-apps", label: "Connected apps", icon: AppWindow },
-    { id: "data-controls", label: "Data controls", icon: Database },
-    { id: "security", label: "Security", icon: Shield },
-    { id: "account", label: "Account", icon: CircleUser },
   ];
 
   return (
@@ -73,12 +63,6 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           <div className="w-2/3 md:w-3/4 p-4 md:p-6 overflow-y-auto">
             {activeTab === "general" && <GeneralSettings />}
             {activeTab === "personalization" && <PersonalizationSettings />}
-            {activeTab !== "general" && activeTab !== "personalization" && (
-              <div>
-                <h2 className="text-xl font-semibold mb-4 capitalize">{activeTab.replace('-', ' ')}</h2>
-                <p className="text-zinc-400">Settings for {activeTab.replace('-', ' ')} are not yet available.</p>
-              </div>
-            )}
           </div>
         </div>
       </DialogContent>
