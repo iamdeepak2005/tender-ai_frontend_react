@@ -113,11 +113,11 @@ export function ChatInterface() {
   return (
     <div className="relative flex h-full flex-col">
       <ScrollArea className="flex-1">
-        <div className="space-y-6 p-4 pr-6 sm:p-6 sm:pr-8 max-w-4xl mx-auto">
+        <div className="space-y-6 p-4 sm:p-6 max-w-4xl mx-auto">
           {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground pt-20">
+            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground pt-10 sm:pt-20">
               <Icons.logo className="h-16 w-16 mb-4 text-primary/30" />
-              <h2 className="text-2xl font-semibold text-foreground">Welcome to TenderAI</h2>
+              <h2 className="text-xl sm:text-2xl font-semibold text-foreground">Welcome to TenderAI</h2>
               <p>Start by asking a question below or try a suggestion.</p>
             </div>
           )}
