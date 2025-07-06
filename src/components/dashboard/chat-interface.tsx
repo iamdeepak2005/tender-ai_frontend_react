@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { Loader2, Mic, MicOff, Camera as CameraIcon, ImageUp, X, Wrench, FileText, Info, HelpCircle, Globe, Check, Plus, ArrowUp } from "lucide-react";
+import { Loader2, Mic, MicOff, Camera as CameraIcon, ImageUp, X, SlidersHorizontal, FileText, Info, HelpCircle, Globe, Plus, ArrowUp } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { QuerySuggestions } from "./query-suggestions";
@@ -16,7 +16,6 @@ import {
   Popover,
   PopoverContent,
   PopoverAnchor,
-  PopoverTrigger,
 } from "@/components/ui/popover";
 import { CameraDialog } from "./camera-dialog";
 
@@ -47,11 +46,7 @@ export function ChatInterface() {
   const [isToolPopoverOpen, setIsToolPopoverOpen] = useState(false);
 
   const handleToolSelect = (tool: string) => {
-    if (selectedTool === tool) {
-      setSelectedTool(null);
-    } else {
-      setSelectedTool(tool);
-    }
+    setSelectedTool(tool);
     setIsToolPopoverOpen(false);
   };
 
@@ -289,7 +284,7 @@ export function ChatInterface() {
                     ref={textareaRef}
                     value={input}
                     onChange={handleInputChange}
-                    placeholder={isListening ? "Listening..." : "Ask anything"}
+                    placeholder={selectedTool || (isListening ? "Listening..." : "Ask anything")}
                     className="min-h-[60px] w-full resize-none border-0 bg-transparent p-3 shadow-none focus-visible:ring-0"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
@@ -301,7 +296,7 @@ export function ChatInterface() {
                   />
                 </PopoverAnchor>
                 <div className="flex items-center justify-between p-2 border-t">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                         <Popover>
                             <PopoverTrigger asChild>
                             <Button type="button" size="icon" variant="ghost">
@@ -323,9 +318,9 @@ export function ChatInterface() {
 
                         <Popover open={isToolPopoverOpen} onOpenChange={setIsToolPopoverOpen}>
                             <PopoverTrigger asChild>
-                                <Button type="button" variant={selectedTool ? "secondary" : "ghost"} className="gap-1.5">
-                                <Wrench className="h-4 w-4" />
-                                <span className="max-sm:hidden">Tools</span>
+                                <Button type="button" variant="ghost" size="icon">
+                                <SlidersHorizontal className="h-5 w-5" />
+                                <span className="sr-only">Tools</span>
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-56 p-2 mb-2" side="top" align="start">
@@ -333,18 +328,30 @@ export function ChatInterface() {
                                 <Button
                                 key={tool.name}
                                 variant="ghost"
-                                className="w-full justify-between text-sm p-2 gap-2"
+                                className="w-full justify-start text-sm p-2 gap-2"
                                 onClick={() => handleToolSelect(tool.name)}
                                 >
-                                <div className="flex items-center gap-2">
-                                    <tool.icon className="h-4 w-4" />
-                                    <span>{tool.name}</span>
-                                </div>
-                                {selectedTool === tool.name && <Check className="h-4 w-4" />}
+                                  <tool.icon className="h-4 w-4" />
+                                  <span>{tool.name}</span>
                                 </Button>
                             ))}
                             </PopoverContent>
                         </Popover>
+
+                        {selectedTool && (
+                            <div className="flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-sm text-secondary-foreground">
+                                {React.createElement(tools.find((t) => t.name === selectedTool)!.icon, { className: "h-4 w-4" })}
+                                <span className="font-medium">{selectedTool}</span>
+                                <button
+                                    type="button"
+                                    className="-mr-1.5 rounded-full p-0.5 hover:bg-background/50"
+                                    onClick={() => setSelectedTool(null)}
+                                >
+                                    <X className="h-4 w-4" />
+                                    <span className="sr-only">Clear tool</span>
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-1">
