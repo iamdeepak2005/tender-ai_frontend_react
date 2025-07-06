@@ -75,7 +75,7 @@ export function SidebarContent() {
       </SidebarHeader>
       <SidebarGroup className="flex-1 overflow-y-auto">
         <SidebarGroupContent>
-          <div className="p-2">
+          <div className="px-2 py-2">
             <Button
               variant="ghost"
               className="group-data-[state=collapsed]:h-8 group-data-[state=collapsed]:w-8 group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:p-0 w-full justify-start gap-2"
