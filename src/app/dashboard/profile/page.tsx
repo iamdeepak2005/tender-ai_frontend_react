@@ -15,7 +15,7 @@ export default function ProfilePage() {
     <div className="p-4 sm:p-6">
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>Profile Settings</CardTitle>
+          <CardTitle className="text-xl sm:text-2xl">Profile Settings</CardTitle>
           <CardDescription>
             Update your personal information and preferences.
           </CardDescription>

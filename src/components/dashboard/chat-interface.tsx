@@ -238,7 +238,7 @@ export function ChatInterface() {
         </div>
       </ScrollArea>
       
-      <div className="p-4 border-t bg-background/80 backdrop-blur-sm">
+      <div className="p-2 sm:p-4 border-t bg-background/80 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto">
           {messages.length === 0 && <QuerySuggestions onSelectQuery={handleSuggestionQuery} />}
           
