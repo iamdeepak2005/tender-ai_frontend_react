@@ -6,15 +6,19 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { CornerDownLeft, Loader2, Mic, MicOff } from "lucide-react";
+import { CornerDownLeft, Loader2, Mic, MicOff, Paperclip, Camera as CameraIcon, ImageUp, X } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import { QuerySuggestions } from "./query-suggestions";
 import { Icons } from "../icons";
 import {
   Popover,
   PopoverContent,
   PopoverAnchor,
+  PopoverTrigger,
 } from "@/components/ui/popover";
+import { CameraDialog } from "./camera-dialog";
+
 
 type Message = {
   id: string;
@@ -33,6 +37,11 @@ export function ChatInterface() {
   const [isListening, setIsListening] = useState(false);
   const [isSpeechSupported, setIsSpeechSupported] = useState(false);
   const recognitionRef = useRef<any>(null);
+
+  const [attachment, setAttachment] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+
 
   useEffect(() => {
     const SpeechRecognition =
@@ -106,15 +115,49 @@ export function ChatInterface() {
     });
   };
 
-  const submitQuery = async (query: string) => {
-    if (!query.trim() || isLoading) return;
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUri = e.target?.result as string;
+        setAttachment(dataUri);
+      };
+      reader.readAsDataURL(file);
+    }
+    if (event.target) event.target.value = '';
+  };
+
+  const handleCameraCapture = (dataUri: string) => {
+    setAttachment(dataUri);
+    setIsCameraOpen(false);
+  };
+
+  const submitQuery = async (query: string, image?: string | null) => {
+    if ((!query.trim() && !image) || isLoading) return;
 
     setIsLoading(true);
     setInput("");
+    setAttachment(null);
     
+    const userMessageContent = (
+      <>
+        {image && (
+          <Image
+            src={image}
+            alt="Attachment"
+            width={200}
+            height={200}
+            className="rounded-md mb-2 object-cover max-w-full h-auto"
+          />
+        )}
+        {query && <p>{highlightTags(query)}</p>}
+      </>
+    );
+
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: <p>{highlightTags(query)}</p>,
+      content: userMessageContent,
       role: "user",
     };
     setMessages((prev) => [...prev, userMessage]);
@@ -127,7 +170,7 @@ export function ChatInterface() {
     setMessages((prev) => [...prev, loadingMessage]);
 
     try {
-      const result = await tenderQueryTool({ query });
+      const result = await tenderQueryTool({ query, imageDataUri: image || undefined });
       const assistantMessage: Message = {
         id: loadingMessage.id,
         content: <p>{result.tenderInfo}</p>,
@@ -149,12 +192,12 @@ export function ChatInterface() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    submitQuery(input);
+    submitQuery(input, attachment);
   };
   
   const handleSuggestionQuery = (query: string) => {
     setInput(query);
-    submitQuery(query);
+    submitQuery(query, attachment);
   }
 
   return (
@@ -165,7 +208,7 @@ export function ChatInterface() {
             <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground pt-10 sm:pt-20">
               <Icons.logo className="h-16 w-16 mb-4 text-primary/30" />
               <h2 className="text-xl sm:text-2xl font-semibold text-foreground">Welcome to TenderAI</h2>
-              <p>Start by asking a question below or try a suggestion.</p>
+              <p>Start by asking a question or attaching a file below.</p>
             </div>
           )}
           {messages.map((message) => (
@@ -178,7 +221,8 @@ export function ChatInterface() {
                 </Avatar>
               )}
               <div className={cn(
-                "max-w-[75%] rounded-lg p-3 text-sm shadow-sm break-words",
+                "max-w-[75%] rounded-lg p-3 text-sm shadow-sm",
+                "break-words",
                 message.role === "user" ? "bg-primary text-primary-foreground" : "bg-card"
               )}>
                 {message.content}
@@ -198,39 +242,80 @@ export function ChatInterface() {
         <div className="max-w-4xl mx-auto">
           {messages.length === 0 && <QuerySuggestions onSelectQuery={handleSuggestionQuery} />}
           
+          <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,.pdf,.doc,.docx" />
+          <CameraDialog open={isCameraOpen} onOpenChange={setIsCameraOpen} onCapture={handleCameraCapture} />
+
+          {attachment && (
+            <div className="relative w-fit mb-2 p-2 border rounded-md bg-muted">
+              <Image src={attachment} alt="Attachment preview" width={80} height={80} className="rounded-md object-cover" />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-background hover:bg-destructive hover:text-destructive-foreground"
+                onClick={() => setAttachment(null)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          
           <Popover open={showSuggestions} onOpenChange={setShowSuggestions}>
-            <form onSubmit={handleSubmit} className="relative overflow-hidden rounded-lg border focus-within:ring-1 focus-within:ring-ring">
-                <PopoverAnchor asChild>
-                  <Textarea
-                    ref={textareaRef}
-                    value={input}
-                    onChange={handleInputChange}
-                    placeholder={isListening ? "Listening..." : "Ask about tenders... Type @ for tags."}
-                    className="min-h-12 resize-none border-0 p-3 pr-24 shadow-none focus-visible:ring-0"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSubmit(e as any);
-                      }
-                    }}
-                    disabled={isLoading || isListening}
-                  />
-                </PopoverAnchor>
-              <div className="absolute right-2 top-3 flex items-center gap-1">
-                 <Button
-                  type="button"
-                  size="icon"
-                  variant={isListening ? 'destructive' : 'ghost'}
-                  onClick={handleMicClick}
-                  disabled={!isSpeechSupported || isLoading}
-                >
-                  {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                  <span className="sr-only">{isListening ? 'Stop listening' : 'Start listening'}</span>
-                </Button>
-                <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
-                  <CornerDownLeft className="h-4 w-4" />
-                  <span className="sr-only">Send</span>
-                </Button>
+            <form onSubmit={handleSubmit} className="relative">
+              <div className="overflow-hidden rounded-lg border focus-within:ring-1 focus-within:ring-ring">
+                  <PopoverAnchor asChild>
+                    <Textarea
+                      ref={textareaRef}
+                      value={input}
+                      onChange={handleInputChange}
+                      placeholder={isListening ? "Listening..." : "Ask about tenders... Type @ for tags."}
+                      className="min-h-12 resize-none border-0 p-3 pl-12 pr-24 shadow-none focus-visible:ring-0"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSubmit(e as any);
+                        }
+                      }}
+                      disabled={isLoading || isListening}
+                    />
+                  </PopoverAnchor>
+                
+                <div className="absolute left-1.5 top-2.5">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button type="button" size="icon" variant="ghost">
+                        <Paperclip className="h-4 w-4" />
+                        <span className="sr-only">Attach a file</span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-2 mb-2" side="top" align="start">
+                      <Button variant="ghost" className="w-full justify-start text-sm p-2 gap-2" onClick={() => fileInputRef.current?.click()}>
+                          <ImageUp className="h-4 w-4" />
+                          Upload Image/File
+                      </Button>
+                      <Button variant="ghost" className="w-full justify-start text-sm p-2 gap-2" onClick={() => setIsCameraOpen(true)}>
+                          <CameraIcon className="h-4 w-4" />
+                          Use Camera
+                      </Button>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="absolute right-2 top-3 flex items-center gap-1">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant={isListening ? 'destructive' : 'ghost'}
+                    onClick={handleMicClick}
+                    disabled={!isSpeechSupported || isLoading}
+                  >
+                    {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    <span className="sr-only">{isListening ? 'Stop listening' : 'Start listening'}</span>
+                  </Button>
+                  <Button type="submit" size="icon" disabled={isLoading || (!input.trim() && !attachment)}>
+                    <CornerDownLeft className="h-4 w-4" />
+                    <span className="sr-only">Send</span>
+                  </Button>
+                </div>
               </div>
             </form>
 
@@ -240,7 +325,6 @@ export function ChatInterface() {
                 <Button variant="ghost" className="w-full justify-start text-sm p-2" onClick={() => handleSuggestionClick("Location")}>Location</Button>
             </PopoverContent>
           </Popover>
-
         </div>
       </div>
     </div>
