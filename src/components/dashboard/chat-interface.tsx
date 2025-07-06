@@ -54,6 +54,8 @@ export function ChatInterface() {
 
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const [isToolPopoverOpen, setIsToolPopoverOpen] = useState(false);
+  
+  const [tags, setTags] = useState<string[]>([]);
 
   const handleToolSelect = (tool: string) => {
     setSelectedTool(tool);
@@ -159,12 +161,14 @@ export function ChatInterface() {
   };
 
   const submitQuery = async (query: string, image?: string | null) => {
-    if ((!query.trim() && !image) || isLoading) return;
+    const fullQuery = [...tags, query].join(' ').trim();
+    if ((!fullQuery && !image) || isLoading) return;
 
     setIsLoading(true);
-    const queryWithTool = selectedTool ? `${selectedTool}: ${query}` : query;
+    const queryWithTool = selectedTool ? `${selectedTool}: ${fullQuery}` : fullQuery;
     setInput("");
     setAttachment(null);
+    setTags([]);
     
     const userMessageContent = (
       <>
@@ -177,7 +181,7 @@ export function ChatInterface() {
             className="rounded-md mb-2 object-cover max-w-full h-auto"
           />
         )}
-        {query && <p>{highlightTags(queryWithTool)}</p>}
+        {fullQuery && <p>{highlightTags(queryWithTool)}</p>}
       </>
     );
 
@@ -217,9 +221,17 @@ export function ChatInterface() {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement> | React.KeyboardEvent<HTMLTextAreaElement>) => {
     e.preventDefault();
-    submitQuery(input, attachment);
+    const trimmedInput = input.trim();
+    const tagRegex = /^@[a-zA-Z]+\s+.+/;
+
+    if (tagRegex.test(trimmedInput)) {
+        setTags(prev => [...prev, trimmedInput]);
+        setInput('');
+    } else {
+        submitQuery(input, attachment);
+    }
   };
   
   const handleSuggestionQuery = (query: string) => {
@@ -297,10 +309,29 @@ export function ChatInterface() {
       
       <div className="p-2 sm:p-4 border-t bg-background/80 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto">
-          {messages.length === 0 && <QuerySuggestions onSelectQuery={handleSuggestionQuery} />}
+          {messages.length === 0 && tags.length === 0 && <QuerySuggestions onSelectQuery={handleSuggestionQuery} />}
           
           <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,.pdf,.doc,.docx" />
           <CameraDialog open={isCameraOpen} onOpenChange={setIsCameraOpen} onCapture={handleCameraCapture} />
+          
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {tags.map((tag, index) => (
+                <div key={index} className="flex items-center gap-1.5 rounded-lg bg-muted p-2 text-sm text-muted-foreground">
+                  <span className="font-medium">{highlightTags(tag)}</span>
+                  <button
+                    type="button"
+                    className="-mr-1 rounded-full p-0.5 hover:bg-background"
+                    onClick={() => setTags((prev) => prev.filter((_, i) => i !== index))}
+                  >
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Remove tag</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
 
           {attachment && (
             <div className="relative w-fit mb-2 p-2 border rounded-md bg-muted">
@@ -324,12 +355,12 @@ export function ChatInterface() {
                     ref={textareaRef}
                     value={input}
                     onChange={handleInputChange}
-                    placeholder={selectedTool || (isListening ? "Listening..." : "Ask anything")}
+                    placeholder={selectedTool || (isListening ? "Listening..." : "Ask anything, or type '@' for options...")}
                     className="min-h-[60px] w-full resize-none border-0 bg-transparent p-3 shadow-none focus-visible:ring-0"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
-                        handleSubmit(e as any);
+                        handleSubmit(e);
                       }
                     }}
                     disabled={isLoading || isListening}
@@ -405,7 +436,7 @@ export function ChatInterface() {
                             {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                             <span className="sr-only">{isListening ? 'Stop listening' : 'Start listening'}</span>
                         </Button>
-                        <Button type="submit" size="icon" className="rounded-full" disabled={isLoading || (!input.trim() && !attachment)}>
+                        <Button type="submit" size="icon" className="rounded-full" disabled={isLoading || (!input.trim() && !attachment && tags.length === 0)}>
                             <ArrowUp className="h-4 w-4" />
                             <span className="sr-only">Send</span>
                         </Button>
