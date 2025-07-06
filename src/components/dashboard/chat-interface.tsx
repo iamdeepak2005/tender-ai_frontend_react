@@ -1,3 +1,4 @@
+
 "use client";
 
 import { tenderQueryTool } from "@/ai/flows/tender-query-tool";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { CornerDownLeft, Loader2, Mic, MicOff, Paperclip, Camera as CameraIcon, ImageUp, X, Wrench, FileText, Info, HelpCircle, Globe, Check } from "lucide-react";
+import { Loader2, Mic, MicOff, Camera as CameraIcon, ImageUp, X, Wrench, FileText, Info, HelpCircle, Globe, Check, Plus, ArrowUp } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { QuerySuggestions } from "./query-suggestions";
@@ -282,85 +283,86 @@ export function ChatInterface() {
           
           <Popover open={showSuggestions} onOpenChange={setShowSuggestions}>
             <form onSubmit={handleSubmit} className="relative">
-              <div className="overflow-hidden rounded-lg border focus-within:ring-1 focus-within:ring-ring">
-                  <PopoverAnchor asChild>
-                    <Textarea
-                      ref={textareaRef}
-                      value={input}
-                      onChange={handleInputChange}
-                      placeholder={isListening ? "Listening..." : "Ask about tenders... Type @ for tags."}
-                      className="min-h-12 resize-none border-0 p-3 pl-24 shadow-none focus-visible:ring-0"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSubmit(e as any);
-                        }
-                      }}
-                      disabled={isLoading || isListening}
-                    />
-                  </PopoverAnchor>
-                
-                <div className="absolute left-1.5 top-2.5 flex items-center">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button type="button" size="icon" variant="ghost">
-                        <Paperclip className="h-4 w-4" />
-                        <span className="sr-only">Attach a file</span>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-56 p-2 mb-2" side="top" align="start">
-                      <Button variant="ghost" className="w-full justify-start text-sm p-2 gap-2" onClick={() => fileInputRef.current?.click()}>
-                          <ImageUp className="h-4 w-4" />
-                          Upload Image/File
-                      </Button>
-                      <Button variant="ghost" className="w-full justify-start text-sm p-2 gap-2" onClick={() => setIsCameraOpen(true)}>
-                          <CameraIcon className="h-4 w-4" />
-                          Use Camera
-                      </Button>
-                    </PopoverContent>
-                  </Popover>
+              <div className="overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring">
+                <PopoverAnchor asChild>
+                  <Textarea
+                    ref={textareaRef}
+                    value={input}
+                    onChange={handleInputChange}
+                    placeholder={isListening ? "Listening..." : "Ask anything"}
+                    className="min-h-[60px] w-full resize-none border-0 bg-transparent p-3 shadow-none focus-visible:ring-0"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSubmit(e as any);
+                      }
+                    }}
+                    disabled={isLoading || isListening}
+                  />
+                </PopoverAnchor>
+                <div className="flex items-center justify-between p-2 border-t">
+                    <div className="flex items-center gap-1">
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <Button type="button" size="icon" variant="ghost">
+                                <Plus className="h-5 w-5" />
+                                <span className="sr-only">Attach a file</span>
+                            </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-56 p-2 mb-2" side="top" align="start">
+                            <Button variant="ghost" className="w-full justify-start text-sm p-2 gap-2" onClick={() => fileInputRef.current?.click()}>
+                                <ImageUp className="h-4 w-4" />
+                                Upload Image/File
+                            </Button>
+                            <Button variant="ghost" className="w-full justify-start text-sm p-2 gap-2" onClick={() => setIsCameraOpen(true)}>
+                                <CameraIcon className="h-4 w-4" />
+                                Use Camera
+                            </Button>
+                            </PopoverContent>
+                        </Popover>
 
-                  <Popover open={isToolPopoverOpen} onOpenChange={setIsToolPopoverOpen}>
-                    <PopoverTrigger asChild>
-                        <Button type="button" size="icon" variant={selectedTool ? "secondary" : "ghost"}>
-                        <Wrench className="h-4 w-4" />
-                        <span className="sr-only">Tools</span>
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-56 p-2 mb-2" side="top" align="start">
-                      {tools.map((tool) => (
+                        <Popover open={isToolPopoverOpen} onOpenChange={setIsToolPopoverOpen}>
+                            <PopoverTrigger asChild>
+                                <Button type="button" variant={selectedTool ? "secondary" : "ghost"} className="gap-1.5">
+                                <Wrench className="h-4 w-4" />
+                                <span className="max-sm:hidden">Tools</span>
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-56 p-2 mb-2" side="top" align="start">
+                            {tools.map((tool) => (
+                                <Button
+                                key={tool.name}
+                                variant="ghost"
+                                className="w-full justify-between text-sm p-2 gap-2"
+                                onClick={() => handleToolSelect(tool.name)}
+                                >
+                                <div className="flex items-center gap-2">
+                                    <tool.icon className="h-4 w-4" />
+                                    <span>{tool.name}</span>
+                                </div>
+                                {selectedTool === tool.name && <Check className="h-4 w-4" />}
+                                </Button>
+                            ))}
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+
+                    <div className="flex items-center gap-1">
                         <Button
-                          key={tool.name}
-                          variant="ghost"
-                          className="w-full justify-between text-sm p-2 gap-2"
-                          onClick={() => handleToolSelect(tool.name)}
+                            type="button"
+                            size="icon"
+                            variant={isListening ? 'destructive' : 'ghost'}
+                            onClick={handleMicClick}
+                            disabled={!isSpeechSupported || isLoading}
                         >
-                          <div className="flex items-center gap-2">
-                            <tool.icon className="h-4 w-4" />
-                            <span>{tool.name}</span>
-                          </div>
-                          {selectedTool === tool.name && <Check className="h-4 w-4" />}
+                            {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                            <span className="sr-only">{isListening ? 'Stop listening' : 'Start listening'}</span>
                         </Button>
-                      ))}
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="absolute right-2 top-2.5 flex items-center gap-1">
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant={isListening ? 'destructive' : 'ghost'}
-                    onClick={handleMicClick}
-                    disabled={!isSpeechSupported || isLoading}
-                  >
-                    {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                    <span className="sr-only">{isListening ? 'Stop listening' : 'Start listening'}</span>
-                  </Button>
-                  <Button type="submit" size="icon" disabled={isLoading || (!input.trim() && !attachment)}>
-                    <CornerDownLeft className="h-4 w-4" />
-                    <span className="sr-only">Send</span>
-                  </Button>
+                        <Button type="submit" size="icon" className="rounded-full" disabled={isLoading || (!input.trim() && !attachment)}>
+                            <ArrowUp className="h-4 w-4" />
+                            <span className="sr-only">Send</span>
+                        </Button>
+                    </div>
                 </div>
               </div>
             </form>
