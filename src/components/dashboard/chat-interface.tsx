@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { CornerDownLeft, Loader2 } from "lucide-react";
-import React, { useState, useRef } from "react";
+import { CornerDownLeft, Loader2, Mic, MicOff } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
 import { QuerySuggestions } from "./query-suggestions";
 import { Icons } from "../icons";
 import {
@@ -29,6 +29,53 @@ export function ChatInterface() {
   
   const [showSuggestions, setShowSuggestions] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeechSupported, setIsSpeechSupported] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    const SpeechRecognition =
+      window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      setIsSpeechSupported(true);
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.lang = "en-US";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(transcript);
+        setIsListening(false);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error:", event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    }
+  }, []);
+
+  const handleMicClick = () => {
+    if (!recognitionRef.current) return;
+
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
@@ -131,7 +178,7 @@ export function ChatInterface() {
                 </Avatar>
               )}
               <div className={cn(
-                "max-w-[75%] rounded-lg p-3 text-sm shadow-sm",
+                "max-w-[75%] rounded-lg p-3 text-sm shadow-sm break-words",
                 message.role === "user" ? "bg-primary text-primary-foreground" : "bg-card"
               )}>
                 {message.content}
@@ -158,18 +205,28 @@ export function ChatInterface() {
                     ref={textareaRef}
                     value={input}
                     onChange={handleInputChange}
-                    placeholder="Ask about tenders... Type @ for tags."
-                    className="min-h-12 resize-none border-0 p-3 pr-12 shadow-none focus-visible:ring-0"
+                    placeholder={isListening ? "Listening..." : "Ask about tenders... Type @ for tags."}
+                    className="min-h-12 resize-none border-0 p-3 pr-24 shadow-none focus-visible:ring-0"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
                         handleSubmit(e as any);
                       }
                     }}
-                    disabled={isLoading}
+                    disabled={isLoading || isListening}
                   />
                 </PopoverAnchor>
-              <div className="absolute right-2 top-3 flex items-center gap-2">
+              <div className="absolute right-2 top-3 flex items-center gap-1">
+                 <Button
+                  type="button"
+                  size="icon"
+                  variant={isListening ? 'destructive' : 'ghost'}
+                  onClick={handleMicClick}
+                  disabled={!isSpeechSupported || isLoading}
+                >
+                  {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  <span className="sr-only">{isListening ? 'Stop listening' : 'Start listening'}</span>
+                </Button>
                 <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
                   <CornerDownLeft className="h-4 w-4" />
                   <span className="sr-only">Send</span>
