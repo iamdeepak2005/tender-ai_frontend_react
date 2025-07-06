@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { Loader2, Mic, MicOff, Camera as CameraIcon, ImageUp, X, SlidersHorizontal, FileText, Info, HelpCircle, Globe, Plus, ArrowUp } from "lucide-react";
+import { Loader2, Mic, MicOff, Camera as CameraIcon, ImageUp, X, SlidersHorizontal, FileText, Info, HelpCircle, Globe, Plus, ArrowUp, ChevronDown } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { QuerySuggestions } from "./query-suggestions";
@@ -19,6 +19,15 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { CameraDialog } from "./camera-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 
 type Message = {
@@ -220,6 +229,36 @@ export function ChatInterface() {
 
   return (
     <div className="relative flex h-full flex-col">
+      <header className="flex h-14 shrink-0 items-center gap-4 px-4 sm:px-6">
+        <SidebarTrigger className="md:hidden" />
+        <div className="flex-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="-ml-2 flex items-center gap-1.5 text-lg font-semibold">
+                TenderAI
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-60">
+              <DropdownMenuLabel>Models</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <div className="flex items-center gap-2">
+                  <Icons.logo className="h-5 w-5 text-primary" />
+                  <span className="font-semibold">TenderAI 1.0</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled>
+                <div className="flex items-center gap-2">
+                  <Icons.logo className="h-5 w-5" />
+                  <span>TenderAI 2.0 (Soon)</span>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+
       <ScrollArea className="flex-1">
         <div className="space-y-6 p-4 sm:p-6 max-w-4xl mx-auto">
           {messages.length === 0 && (

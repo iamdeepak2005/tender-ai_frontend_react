@@ -3,6 +3,7 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarTrigger,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
 import {
   Accordion,
@@ -13,6 +14,7 @@ import {
 import { Icons } from "@/components/icons";
 import { FileText, History, Star, ThumbsUp } from "lucide-react";
 import Link from "next/link";
+import { UserNav } from "./user-nav";
 
 const mockTenders = [
   "Road Construction in California",
@@ -131,6 +133,9 @@ export function SidebarContent() {
           </Accordion>
         </SidebarGroupContent>
       </SidebarGroup>
+      <SidebarFooter className="mt-auto">
+        <UserNav />
+      </SidebarFooter>
     </>
   );
 }
