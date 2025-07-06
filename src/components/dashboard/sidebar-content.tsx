@@ -26,17 +26,24 @@ export function SidebarContent() {
   return (
     <>
       <SidebarHeader>
-        <div className="flex w-full items-center justify-between">
+        {/* Expanded view */}
+        <div className="flex w-full items-center justify-between group-data-[state=collapsed]:hidden">
           <Link
             href="/dashboard"
             className="flex flex-1 items-center gap-2 overflow-hidden"
           >
             <Icons.logo className="h-6 w-6 shrink-0 text-primary" />
-            <span className="whitespace-nowrap text-lg font-semibold group-data-[state=collapsed]:hidden">
+            <span className="whitespace-nowrap text-lg font-semibold">
               TenderAI
             </span>
           </Link>
-          <SidebarTrigger className="hidden shrink-0 group-data-[state=expanded]:md:flex" />
+          <SidebarTrigger className="hidden shrink-0 md:flex" />
+        </div>
+        {/* Collapsed view */}
+        <div className="hidden w-full items-center justify-center group-data-[state=collapsed]:flex">
+          <SidebarTrigger className="hidden md:flex">
+            <Icons.logo className="h-6 w-6 shrink-0 text-primary" />
+          </SidebarTrigger>
         </div>
       </SidebarHeader>
       <SidebarGroup className="flex-1 overflow-y-auto">
