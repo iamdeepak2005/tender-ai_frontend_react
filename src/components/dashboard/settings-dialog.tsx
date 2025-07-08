@@ -55,6 +55,7 @@ type SettingsState = {
     scrapping: string;
     details: string;
     preBid: string;
+    searchWeb: string;
   };
 };
 
@@ -73,6 +74,7 @@ const defaultSettings: SettingsState = {
   preBidQueries: {
     summary: "Provide a concise summary of the attached tender document.",
     scrapping: "Extract key information like deadlines, budget, and eligibility criteria from the document.",
+    searchWeb: "Search the web for information related to the query.",
     details: "Give me a detailed breakdown of the requirements and scope of work.",
     preBid: "Generate a list of potential pre-bid questions based on the tender document.",
   },
@@ -92,10 +94,16 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
   useEffect(() => {
     if (open) {
-      const storedSettings = localStorage.getItem("tender-ai-settings");
-      const loadedSettings = storedSettings ? { ...defaultSettings, ...JSON.parse(storedSettings) } : defaultSettings;
-      setSettings(loadedSettings);
-      setInitialSettings(loadedSettings);
+      try {
+        const storedSettings = localStorage.getItem("tender-ai-settings");
+        const loadedSettings = storedSettings ? { ...defaultSettings, ...JSON.parse(storedSettings) } : defaultSettings;
+        setSettings(loadedSettings);
+        setInitialSettings(loadedSettings);
+      } catch (e) {
+        console.error('Failed to load settings from localStorage', e);
+        setSettings(defaultSettings);
+        setInitialSettings(defaultSettings);
+      }
     }
   }, [open]);
 
@@ -117,6 +125,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     applyTheme(settings.theme);
     localStorage.setItem("tender-ai-settings", JSON.stringify(settings));
     onOpenChange(false);
+    // Optionally, you could broadcast a change event here for other components to listen to.
+    window.dispatchEvent(new Event('settings-updated'));
   };
 
   const handleCancel = () => {
@@ -453,6 +463,17 @@ function PreBidQueriesSettings({ settings, setSettings }: SettingsProps) {
                         id="scrapping-query"
                         value={settings.preBidQueries.scrapping}
                         onChange={(e) => handleQueryChange('scrapping', e.target.value)}
+                        className="bg-zinc-800 border-zinc-600 min-h-[80px]"
+                        disabled={!settings.preBidQueriesEnabled}
+                    />
+                </div>
+                <div>
+                    <Label htmlFor="search-web-query" className="text-base font-semibold block mb-1">Search the Web Query</Label>
+                    <p className="text-sm text-zinc-400 mb-2">Default query for the 'Search the Web' tool.</p>
+                    <Textarea
+                        id="search-web-query"
+                        value={settings.preBidQueries.searchWeb}
+                        onChange={(e) => handleQueryChange('searchWeb', e.target.value)}
                         className="bg-zinc-800 border-zinc-600 min-h-[80px]"
                         disabled={!settings.preBidQueriesEnabled}
                     />

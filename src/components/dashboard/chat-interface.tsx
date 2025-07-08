@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { Loader2, Mic, MicOff, Camera as CameraIcon, ImageUp, X, SlidersHorizontal, FileText, Info, HelpCircle, Plus, ArrowUp, FileSearch } from "lucide-react";
+import { Loader2, Mic, MicOff, Camera as CameraIcon, ImageUp, X, SlidersHorizontal, FileText, Info, HelpCircle, Plus, ArrowUp, FileSearch, Globe } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { Icons } from "../icons";
@@ -82,6 +82,7 @@ export function ChatInterface() {
   const tools: Tool[] = [
     { name: 'Summary', key: 'summary', icon: FileText },
     { name: 'Scrapping', key: 'scrapping', icon: FileSearch },
+    { name: 'Search the Web', key: 'searchWeb', icon: Globe },
     { name: 'Details', key: 'details', icon: Info },
     { name: 'Pre Bid Queries', key: 'preBid', icon: HelpCircle },
   ];
