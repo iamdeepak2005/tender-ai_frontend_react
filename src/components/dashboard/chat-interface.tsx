@@ -7,10 +7,9 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { Loader2, Mic, MicOff, Camera as CameraIcon, ImageUp, X, SlidersHorizontal, FileText, Info, HelpCircle, Globe, Plus, ArrowUp } from "lucide-react";
+import { Loader2, Mic, MicOff, Camera as CameraIcon, ImageUp, X, SlidersHorizontal, FileText, Info, HelpCircle, Plus, ArrowUp, FileSearch } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { QuerySuggestions } from "./query-suggestions";
 import { Icons } from "../icons";
 import {
   Popover,
@@ -28,6 +27,12 @@ type Message = {
   role: "user" | "assistant";
 };
 
+type Tool = {
+  name: string;
+  key: string;
+  icon: React.ElementType;
+}
+
 export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -44,21 +49,41 @@ export function ChatInterface() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
 
-  const [selectedTool, setSelectedTool] = useState<string | null>(null);
+  const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
   const [isToolPopoverOpen, setIsToolPopoverOpen] = useState(false);
   
   const [tags, setTags] = useState<string[]>([]);
+  
+  const [predefinedQueries, setPredefinedQueries] = useState<Record<string, string>>({});
+  const [predefinedQueriesEnabled, setPredefinedQueriesEnabled] = useState(false);
 
-  const handleToolSelect = (tool: string) => {
+  useEffect(() => {
+    try {
+      const settingsString = localStorage.getItem('tender-ai-settings');
+      if (settingsString) {
+        const settings = JSON.parse(settingsString);
+        if (settings.preBidQueries) {
+          setPredefinedQueries(settings.preBidQueries);
+        }
+        if (typeof settings.preBidQueriesEnabled === 'boolean') {
+            setPredefinedQueriesEnabled(settings.preBidQueriesEnabled);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load settings from localStorage', e);
+    }
+  }, []);
+
+  const handleToolSelect = (tool: Tool) => {
     setSelectedTool(tool);
     setIsToolPopoverOpen(false);
   };
 
-  const tools = [
-    { name: 'Summary', icon: FileText },
-    { name: 'Details', icon: Info },
-    { name: 'Prebid Queries', icon: HelpCircle },
-    { name: 'Search the Web', icon: Globe },
+  const tools: Tool[] = [
+    { name: 'Summary', key: 'summary', icon: FileText },
+    { name: 'Scrapping', key: 'scrapping', icon: FileSearch },
+    { name: 'Details', key: 'details', icon: Info },
+    { name: 'Pre Bid Queries', key: 'preBid', icon: HelpCircle },
   ];
 
 
@@ -142,7 +167,7 @@ export function ChatInterface() {
         const dataUri = e.target?.result as string;
         setAttachment(dataUri);
       };
-      reader.readAsDataURL(file);
+      reader.readDataURL(file);
     }
     if (event.target) event.target.value = '';
   };
@@ -157,7 +182,7 @@ export function ChatInterface() {
     if ((!fullQuery && !image) || isLoading) return;
 
     setIsLoading(true);
-    const queryWithTool = selectedTool ? `${selectedTool}: ${fullQuery}` : fullQuery;
+    const queryWithTool = selectedTool ? `${selectedTool.name}: ${fullQuery}` : fullQuery;
     setInput("");
     setAttachment(null);
     setTags([]);
@@ -278,7 +303,22 @@ export function ChatInterface() {
       
       <div className="p-2 sm:p-4 border-t bg-background/80 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto">
-          {messages.length === 0 && tags.length === 0 && <QuerySuggestions onSelectQuery={handleSuggestionQuery} />}
+          {predefinedQueriesEnabled && selectedTool && predefinedQueries[selectedTool.key] && (
+            <div className="mb-4">
+              <button
+                className="p-3 text-left border rounded-lg hover:bg-muted transition-colors w-full"
+                onClick={() => handleSuggestionQuery(predefinedQueries[selectedTool.key])}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  {React.createElement(selectedTool.icon, { className: "h-4 w-4 text-primary" })}
+                  <p className="text-sm font-semibold text-primary">{selectedTool.name}</p>
+                </div>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {predefinedQueries[selectedTool.key]}
+                </p>
+              </button>
+            </div>
+          )}
           
           <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,.pdf,.doc,.docx" />
           <CameraDialog open={isCameraOpen} onOpenChange={setIsCameraOpen} onCapture={handleCameraCapture} />
@@ -324,7 +364,7 @@ export function ChatInterface() {
                     ref={textareaRef}
                     value={input}
                     onChange={handleInputChange}
-                    placeholder={selectedTool || (isListening ? "Listening..." : "Ask anything, or type '@' for options...")}
+                    placeholder={selectedTool?.name || (isListening ? "Listening..." : "Ask anything, or type '@' for options...")}
                     className="min-h-[60px] w-full resize-none border-0 bg-transparent p-3 shadow-none focus-visible:ring-0"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
@@ -369,7 +409,7 @@ export function ChatInterface() {
                                 key={tool.name}
                                 variant="ghost"
                                 className="w-full justify-start text-sm p-2 gap-2"
-                                onClick={() => handleToolSelect(tool.name)}
+                                onClick={() => handleToolSelect(tool)}
                                 >
                                   <tool.icon className="h-4 w-4" />
                                   <span>{tool.name}</span>
@@ -380,8 +420,8 @@ export function ChatInterface() {
 
                         {selectedTool && (
                             <div className="flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-sm text-secondary-foreground">
-                                {React.createElement(tools.find((t) => t.name === selectedTool)!.icon, { className: "h-4 w-4" })}
-                                <span className="font-medium">{selectedTool}</span>
+                                {React.createElement(selectedTool.icon, { className: "h-4 w-4" })}
+                                <span className="font-medium">{selectedTool.name}</span>
                                 <button
                                     type="button"
                                     className="-mr-1.5 rounded-full p-0.5 hover:bg-background/50"

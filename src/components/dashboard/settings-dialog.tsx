@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -35,6 +36,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
 
 type SettingsState = {
   theme: "system" | "dark" | "light";
@@ -47,6 +49,13 @@ type SettingsState = {
   referenceChatHistory: boolean;
   predefinedFiltersEnabled: boolean;
   predefinedFilters: string[];
+  preBidQueriesEnabled: boolean;
+  preBidQueries: {
+    summary: string;
+    scrapping: string;
+    details: string;
+    preBid: string;
+  };
 };
 
 const defaultSettings: SettingsState = {
@@ -60,6 +69,13 @@ const defaultSettings: SettingsState = {
   referenceChatHistory: true,
   predefinedFiltersEnabled: false,
   predefinedFilters: [],
+  preBidQueriesEnabled: true,
+  preBidQueries: {
+    summary: "Provide a concise summary of the attached tender document.",
+    scrapping: "Extract key information like deadlines, budget, and eligibility criteria from the document.",
+    details: "Give me a detailed breakdown of the requirements and scope of work.",
+    preBid: "Generate a list of potential pre-bid questions based on the tender document.",
+  },
 };
 
 interface SettingsDialogProps {
@@ -147,7 +163,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             {activeTab === "general" && <GeneralSettings settings={settings} setSettings={setSettings} />}
             {activeTab === "personalization" && <PersonalizationSettings settings={settings} setSettings={setSettings} />}
             {activeTab === "pre-defined-filters" && <PredefinedFiltersSettings settings={settings} setSettings={setSettings} />}
-            {activeTab === "pre-bid-queries" && <PreBidQueriesSettings />}
+            {activeTab === "pre-bid-queries" && <PreBidQueriesSettings settings={settings} setSettings={setSettings} />}
           </div>
         </div>
         <DialogFooter className="p-4 border-t border-zinc-700 justify-end">
@@ -396,13 +412,74 @@ function PredefinedFiltersSettings({ settings, setSettings }: SettingsProps) {
     );
 }
 
-function PreBidQueriesSettings() {
+function PreBidQueriesSettings({ settings, setSettings }: SettingsProps) {
+    const handleQueryChange = (key: keyof SettingsState['preBidQueries'], value: string) => {
+        setSettings(s => ({
+            ...s,
+            preBidQueries: {
+                ...s.preBidQueries,
+                [key]: value
+            }
+        }));
+    };
+
     return (
         <div className="space-y-6">
-            <h2 className="text-xl font-semibold">Pre-Bid Queries</h2>
-            <p className="text-sm text-zinc-400">
-                Configure settings for AI-assisted pre-bid query generation. This feature is coming soon.
-            </p>
+            <SettingsItem title="Enable AI-assisted Pre-Bid Queries">
+                <Switch
+                    checked={settings.preBidQueriesEnabled}
+                    onCheckedChange={(checked) => setSettings(s => ({...s, preBidQueriesEnabled: checked }))}
+                />
+            </SettingsItem>
+            
+            <Separator className="bg-zinc-700"/>
+
+            <div className={cn("space-y-6", !settings.preBidQueriesEnabled && "opacity-50 pointer-events-none")}>
+                <div>
+                    <Label htmlFor="summary-query" className="text-base font-semibold block mb-1">Summary Query</Label>
+                    <p className="text-sm text-zinc-400 mb-2">Default query for the 'Summary' tool.</p>
+                    <Textarea
+                        id="summary-query"
+                        value={settings.preBidQueries.summary}
+                        onChange={(e) => handleQueryChange('summary', e.target.value)}
+                        className="bg-zinc-800 border-zinc-600 min-h-[80px]"
+                        disabled={!settings.preBidQueriesEnabled}
+                    />
+                </div>
+                <div>
+                    <Label htmlFor="scrapping-query" className="text-base font-semibold block mb-1">Scrapping Query</Label>
+                    <p className="text-sm text-zinc-400 mb-2">Default query for the 'Scrapping' tool.</p>
+                    <Textarea
+                        id="scrapping-query"
+                        value={settings.preBidQueries.scrapping}
+                        onChange={(e) => handleQueryChange('scrapping', e.target.value)}
+                        className="bg-zinc-800 border-zinc-600 min-h-[80px]"
+                        disabled={!settings.preBidQueriesEnabled}
+                    />
+                </div>
+                <div>
+                    <Label htmlFor="details-query" className="text-base font-semibold block mb-1">Details Query</Label>
+                    <p className="text-sm text-zinc-400 mb-2">Default query for the 'Details' tool.</p>
+                    <Textarea
+                        id="details-query"
+                        value={settings.preBidQueries.details}
+                        onChange={(e) => handleQueryChange('details', e.target.value)}
+                        className="bg-zinc-800 border-zinc-600 min-h-[80px]"
+                        disabled={!settings.preBidQueriesEnabled}
+                    />
+                </div>
+                <div>
+                    <Label htmlFor="prebid-query" className="text-base font-semibold block mb-1">Pre-Bid Queries Generation</Label>
+                    <p className="text-sm text-zinc-400 mb-2">Default query for the 'Pre Bid Queries' tool.</p>
+                    <Textarea
+                        id="prebid-query"
+                        value={settings.preBidQueries.preBid}
+                        onChange={(e) => handleQueryChange('preBid', e.target.value)}
+                        className="bg-zinc-800 border-zinc-600 min-h-[80px]"
+                        disabled={!settings.preBidQueriesEnabled}
+                    />
+                </div>
+            </div>
         </div>
     );
 }
