@@ -25,6 +25,7 @@ import {
   HelpCircle,
   ChevronRight,
   Filter,
+  X,
 } from "lucide-react";
 import {
   Tooltip,
@@ -32,6 +33,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 type SettingsState = {
   theme: "system" | "dark" | "light";
@@ -42,6 +45,8 @@ type SettingsState = {
   customInstructionsOn: boolean;
   referenceSavedMemories: boolean;
   referenceChatHistory: boolean;
+  predefinedFiltersEnabled: boolean;
+  predefinedFilters: string[];
 };
 
 const defaultSettings: SettingsState = {
@@ -53,6 +58,8 @@ const defaultSettings: SettingsState = {
   customInstructionsOn: true,
   referenceSavedMemories: true,
   referenceChatHistory: true,
+  predefinedFiltersEnabled: false,
+  predefinedFilters: [],
 };
 
 interface SettingsDialogProps {
@@ -304,22 +311,87 @@ function PersonalizationSettings({ settings, setSettings }: SettingsProps) {
 }
 
 function PredefinedFiltersSettings({ settings, setSettings }: SettingsProps) {
-  return (
-      <div className="space-y-8">
-          <SettingsItem title="Manage Pre-defined Filters" description="Create and manage filters to quickly apply to your tender searches.">
-              <Button variant="outline" className="bg-zinc-800 border-zinc-600 hover:bg-zinc-700">Add New Filter</Button>
-          </SettingsItem>
-          
-          <Separator className="bg-zinc-700"/>
+    const [filterInput, setFilterInput] = useState("");
 
-          <div>
-              <h3 className="font-medium mb-4">Your Filters</h3>
-              <div className="text-sm text-zinc-400">
-                  You have no pre-defined filters yet.
-              </div>
-          </div>
-      </div>
-  );
+    const handleFilterKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if ((e.key === 'Enter' || e.key === ',' || e.key === ' ') && filterInput.trim()) {
+            e.preventDefault();
+            const newFilter = filterInput.trim().replace(/,$/, '');
+            if (newFilter && !settings.predefinedFilters.includes(newFilter)) {
+                setSettings(s => ({ ...s, predefinedFilters: [...s.predefinedFilters, newFilter] }));
+            }
+            setFilterInput("");
+        }
+    };
+
+    const removeFilter = (filterToRemove: string) => {
+        setSettings(s => ({
+            ...s,
+            predefinedFilters: s.predefinedFilters.filter(f => f !== filterToRemove)
+        }));
+    };
+
+    const colors = [
+        "bg-blue-500/20 text-blue-300 border border-blue-500/30",
+        "bg-green-500/20 text-green-300 border border-green-500/30",
+        "bg-purple-500/20 text-purple-300 border border-purple-500/30",
+        "bg-orange-500/20 text-orange-300 border border-orange-500/30",
+        "bg-pink-500/20 text-pink-300 border border-pink-500/30",
+    ];
+
+    return (
+        <div className="space-y-6">
+            <SettingsItem title="Enable Pre-defined Filters">
+                <Switch
+                    checked={settings.predefinedFiltersEnabled}
+                    onCheckedChange={(checked) => setSettings(s => ({...s, predefinedFiltersEnabled: checked }))}
+                />
+            </SettingsItem>
+            
+            <Separator className="bg-zinc-700"/>
+            
+            <div>
+                <Label htmlFor="filter-input" className="text-base font-semibold block mb-1">Your Filters</Label>
+                <p className="text-sm text-zinc-400 mb-4">
+                    Type a filter and press space, comma, or Enter to add it.
+                </p>
+                <div className={cn(
+                    "flex flex-wrap items-center gap-2 rounded-md border border-zinc-600 bg-zinc-800 p-2 min-h-[44px]",
+                    !settings.predefinedFiltersEnabled && "opacity-50 bg-zinc-700/50 cursor-not-allowed"
+                )}>
+                    {settings.predefinedFilters.map((filter, index) => (
+                        <div
+                            key={index}
+                            className={cn(
+                                "flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium",
+                                colors[index % colors.length]
+                            )}
+                        >
+                            <span>{filter}</span>
+                            <button
+                                onClick={() => removeFilter(filter)}
+                                className="rounded-full hover:bg-black/20 focus:outline-none focus:ring-2 focus:ring-zinc-400 disabled:cursor-not-allowed"
+                                disabled={!settings.predefinedFiltersEnabled}
+                            >
+                                <X className="h-4 w-4" />
+                                <span className="sr-only">Remove {filter}</span>
+                            </button>
+                        </div>
+                    ))}
+                    <input
+                        id="filter-input"
+                        type="text"
+                        value={filterInput}
+                        onChange={(e) => setFilterInput(e.target.value)}
+                        onKeyDown={handleFilterKeyDown}
+                        placeholder={settings.predefinedFilters.length === 0 ? "e.g., chennai, plumber" : ""}
+                        className="flex-1 bg-transparent p-1 text-sm text-white placeholder-zinc-500 outline-none min-w-[120px]"
+                        disabled={!settings.predefinedFiltersEnabled}
+                    />
+                </div>
+            </div>
+        </div>
+    );
 }
 
 
