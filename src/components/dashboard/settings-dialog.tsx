@@ -432,6 +432,53 @@ function PreBidQueriesSettings({ settings, setSettings }: SettingsProps) {
             }
         }));
     };
+    
+    const mockPreBidQueries: Record<keyof SettingsState['preBidQueries'], string[]> = {
+      summary: [
+        "Summarize the key objectives of this tender.",
+        "What is the main scope of work for this project?",
+        "Provide a high-level overview of the tender requirements.",
+        "Condense the tender document into three main points.",
+        "Give me the executive summary for this tender."
+      ],
+      scrapping: [
+        "Extract all deadlines and submission dates.",
+        "List the eligibility and qualification criteria.",
+        "Find the estimated budget or project value.",
+        "Identify all contact persons and their details.",
+        "Pull out the required list of documents for submission."
+      ],
+      searchWeb: [
+        "Find similar projects awarded in the last 2 years.",
+        "Who are the key competitors for this type of tender?",
+        "What is the reputation of the tendering authority?",
+        "Search for news articles related to this project.",
+        "Find standard material costs for this region."
+      ],
+      details: [
+        "Provide a detailed breakdown of the technical specifications.",
+        "What are the payment terms and schedules?",
+        "List all penalties and liquidated damages clauses.",
+        "Explain the evaluation criteria in detail.",
+        "What are the insurance and bonding requirements?"
+      ],
+      preBid: [
+        "Generate questions regarding ambiguities in the scope of work.",
+        "Formulate clarification questions about the payment terms.",
+        "What are some potential risks we should ask about?",
+        "Create a list of questions for the pre-bid meeting.",
+        "Ask for clarification on the submission process."
+      ],
+    };
+
+    const querySections = [
+        { key: 'summary' as const, title: 'Summary Query', description: "Default query for the 'Summary' tool." },
+        { key: 'scrapping' as const, title: 'Scrapping Query', description: "Default query for the 'Scrapping' tool." },
+        { key: 'searchWeb' as const, title: 'Search the Web Query', description: "Default query for the 'Search the Web' tool." },
+        { key: 'details' as const, title: 'Details Query', description: "Default query for the 'Details' tool." },
+        { key: 'preBid' as const, title: 'Pre-Bid Queries Generation', description: "Default query for the 'Pre Bid Queries' tool." },
+    ];
+
 
     return (
         <div className="space-y-6">
@@ -444,62 +491,31 @@ function PreBidQueriesSettings({ settings, setSettings }: SettingsProps) {
             
             <Separator className="bg-zinc-700"/>
 
-            <div className={cn("space-y-6", !settings.preBidQueriesEnabled && "opacity-50 pointer-events-none")}>
-                <div>
-                    <Label htmlFor="summary-query" className="text-base font-semibold block mb-1">Summary Query</Label>
-                    <p className="text-sm text-zinc-400 mb-2">Default query for the 'Summary' tool.</p>
-                    <Textarea
-                        id="summary-query"
-                        value={settings.preBidQueries.summary}
-                        onChange={(e) => handleQueryChange('summary', e.target.value)}
-                        className="bg-zinc-800 border-zinc-600 min-h-[80px]"
-                        disabled={!settings.preBidQueriesEnabled}
-                    />
-                </div>
-                <div>
-                    <Label htmlFor="scrapping-query" className="text-base font-semibold block mb-1">Scrapping Query</Label>
-                    <p className="text-sm text-zinc-400 mb-2">Default query for the 'Scrapping' tool.</p>
-                    <Textarea
-                        id="scrapping-query"
-                        value={settings.preBidQueries.scrapping}
-                        onChange={(e) => handleQueryChange('scrapping', e.target.value)}
-                        className="bg-zinc-800 border-zinc-600 min-h-[80px]"
-                        disabled={!settings.preBidQueriesEnabled}
-                    />
-                </div>
-                <div>
-                    <Label htmlFor="search-web-query" className="text-base font-semibold block mb-1">Search the Web Query</Label>
-                    <p className="text-sm text-zinc-400 mb-2">Default query for the 'Search the Web' tool.</p>
-                    <Textarea
-                        id="search-web-query"
-                        value={settings.preBidQueries.searchWeb}
-                        onChange={(e) => handleQueryChange('searchWeb', e.target.value)}
-                        className="bg-zinc-800 border-zinc-600 min-h-[80px]"
-                        disabled={!settings.preBidQueriesEnabled}
-                    />
-                </div>
-                <div>
-                    <Label htmlFor="details-query" className="text-base font-semibold block mb-1">Details Query</Label>
-                    <p className="text-sm text-zinc-400 mb-2">Default query for the 'Details' tool.</p>
-                    <Textarea
-                        id="details-query"
-                        value={settings.preBidQueries.details}
-                        onChange={(e) => handleQueryChange('details', e.target.value)}
-                        className="bg-zinc-800 border-zinc-600 min-h-[80px]"
-                        disabled={!settings.preBidQueriesEnabled}
-                    />
-                </div>
-                <div>
-                    <Label htmlFor="prebid-query" className="text-base font-semibold block mb-1">Pre-Bid Queries Generation</Label>
-                    <p className="text-sm text-zinc-400 mb-2">Default query for the 'Pre Bid Queries' tool.</p>
-                    <Textarea
-                        id="prebid-query"
-                        value={settings.preBidQueries.preBid}
-                        onChange={(e) => handleQueryChange('preBid', e.target.value)}
-                        className="bg-zinc-800 border-zinc-600 min-h-[80px]"
-                        disabled={!settings.preBidQueriesEnabled}
-                    />
-                </div>
+            <div className={cn("space-y-8", !settings.preBidQueriesEnabled && "opacity-50 pointer-events-none")}>
+                {querySections.map((section) => (
+                    <div key={section.key}>
+                        <Label htmlFor={`${section.key}-query`} className="text-base font-semibold block mb-1">{section.title}</Label>
+                        <p className="text-sm text-zinc-400 mb-2">{section.description}</p>
+                        <Textarea
+                            id={`${section.key}-query`}
+                            value={settings.preBidQueries[section.key]}
+                            onChange={(e) => handleQueryChange(section.key, e.target.value)}
+                            className="bg-zinc-800 border-zinc-600 min-h-[80px]"
+                            disabled={!settings.preBidQueriesEnabled}
+                        />
+                         <div className="mt-4 space-y-2 text-sm text-zinc-400">
+                            <h4 className="font-medium text-zinc-300">Suggested Queries:</h4>
+                            {mockPreBidQueries[section.key].map((query, index) => (
+                                <div key={index} className="flex items-start gap-3">
+                                    <span className="flex items-center justify-center h-5 w-5 rounded-full bg-primary/20 text-primary font-bold text-xs shrink-0 mt-0.5">
+                                        {index + 1}
+                                    </span>
+                                    <p>{query}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );
