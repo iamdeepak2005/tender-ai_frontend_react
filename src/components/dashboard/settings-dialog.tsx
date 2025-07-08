@@ -24,6 +24,7 @@ import {
   Play,
   HelpCircle,
   ChevronRight,
+  Filter,
 } from "lucide-react";
 import {
   Tooltip,
@@ -59,7 +60,7 @@ interface SettingsDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type TabId = "general" | "personalization";
+type TabId = "general" | "personalization" | "pre-defined-filters";
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [activeTab, setActiveTab] = useState<TabId>("general");
@@ -111,6 +112,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const tabs = [
     { id: "general", label: "General", icon: Settings },
     { id: "personalization", label: "Personalization", icon: Wand2 },
+    { id: "pre-defined-filters", label: "Pre-defined filters", icon: Filter },
   ];
 
   return (
@@ -136,6 +138,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           <div className="w-2/3 md:w-3/4 p-4 md:p-6 overflow-y-auto">
             {activeTab === "general" && <GeneralSettings settings={settings} setSettings={setSettings} />}
             {activeTab === "personalization" && <PersonalizationSettings settings={settings} setSettings={setSettings} />}
+            {activeTab === "pre-defined-filters" && <PredefinedFiltersSettings settings={settings} setSettings={setSettings} />}
           </div>
         </div>
         <DialogFooter className="p-4 border-t border-zinc-700 justify-end">
@@ -298,6 +301,25 @@ function PersonalizationSettings({ settings, setSettings }: SettingsProps) {
             </p>
         </div>
     );
+}
+
+function PredefinedFiltersSettings({ settings, setSettings }: SettingsProps) {
+  return (
+      <div className="space-y-8">
+          <SettingsItem title="Manage Pre-defined Filters" description="Create and manage filters to quickly apply to your tender searches.">
+              <Button variant="outline" className="bg-zinc-800 border-zinc-600 hover:bg-zinc-700">Add New Filter</Button>
+          </SettingsItem>
+          
+          <Separator className="bg-zinc-700"/>
+
+          <div>
+              <h3 className="font-medium mb-4">Your Filters</h3>
+              <div className="text-sm text-zinc-400">
+                  You have no pre-defined filters yet.
+              </div>
+          </div>
+      </div>
+  );
 }
 
 
