@@ -67,7 +67,7 @@ interface SettingsDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type TabId = "general" | "personalization" | "pre-defined-filters";
+type TabId = "general" | "personalization" | "pre-defined-filters" | "pre-bid-queries";
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [activeTab, setActiveTab] = useState<TabId>("general");
@@ -120,6 +120,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     { id: "general", label: "General", icon: Settings },
     { id: "personalization", label: "Personalization", icon: Wand2 },
     { id: "pre-defined-filters", label: "Pre-defined filters", icon: Filter },
+    { id: "pre-bid-queries", label: "Pre Bid Queries", icon: HelpCircle },
   ];
 
   return (
@@ -146,6 +147,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             {activeTab === "general" && <GeneralSettings settings={settings} setSettings={setSettings} />}
             {activeTab === "personalization" && <PersonalizationSettings settings={settings} setSettings={setSettings} />}
             {activeTab === "pre-defined-filters" && <PredefinedFiltersSettings settings={settings} setSettings={setSettings} />}
+            {activeTab === "pre-bid-queries" && <PreBidQueriesSettings />}
           </div>
         </div>
         <DialogFooter className="p-4 border-t border-zinc-700 justify-end">
@@ -390,6 +392,17 @@ function PredefinedFiltersSettings({ settings, setSettings }: SettingsProps) {
                     />
                 </div>
             </div>
+        </div>
+    );
+}
+
+function PreBidQueriesSettings() {
+    return (
+        <div className="space-y-6">
+            <h2 className="text-xl font-semibold">Pre-Bid Queries</h2>
+            <p className="text-sm text-zinc-400">
+                Configure settings for AI-assisted pre-bid query generation. This feature is coming soon.
+            </p>
         </div>
     );
 }
