@@ -96,6 +96,34 @@ const SidebarProvider = React.forwardRef<
         : setOpen((open) => !open)
     }, [isMobile, setOpen, setOpenMobile])
 
+    // Adds a listener for system theme changes.
+    React.useEffect(() => {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      
+      const handleSystemThemeChange = () => {
+        try {
+          const settings = JSON.parse(localStorage.getItem('tender-ai-settings') || '{}');
+          const theme = settings.theme || 'system';
+
+          if (theme === 'system') {
+            if (mediaQuery.matches) {
+              document.documentElement.classList.add('dark');
+            } else {
+              document.documentElement.classList.remove('dark');
+            }
+          }
+        } catch (e) {
+          // Silently fail, as the initial script will handle it on next load.
+        }
+      };
+      
+      mediaQuery.addEventListener('change', handleSystemThemeChange);
+      
+      return () => {
+        mediaQuery.removeEventListener('change', handleSystemThemeChange);
+      };
+    }, []);
+
     // Adds a keyboard shortcut to toggle the sidebar.
     React.useEffect(() => {
       const handleKeyDown = (event: KeyboardEvent) => {
