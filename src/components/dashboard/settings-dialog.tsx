@@ -27,6 +27,7 @@ import {
   ChevronRight,
   Filter,
   X,
+  Plus,
 } from "lucide-react";
 import {
   Tooltip,
@@ -36,7 +37,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 
 type SettingsState = {
   theme: "system" | "dark" | "light";
@@ -51,11 +52,11 @@ type SettingsState = {
   predefinedFilters: string[];
   preBidQueriesEnabled: boolean;
   preBidQueries: {
-    summary: string;
-    scrapping: string;
-    details: string;
-    preBid: string;
-    searchWeb: string;
+    summary: string[];
+    scrapping: string[];
+    details: string[];
+    preBid: string[];
+    searchWeb: string[];
   };
 };
 
@@ -72,11 +73,11 @@ const defaultSettings: SettingsState = {
   predefinedFilters: [],
   preBidQueriesEnabled: true,
   preBidQueries: {
-    summary: "Provide a concise summary of the attached tender document.",
-    scrapping: "Extract key information like deadlines, budget, and eligibility criteria from the document.",
-    searchWeb: "Search the web for information related to the query.",
-    details: "Give me a detailed breakdown of the requirements and scope of work.",
-    preBid: "Generate a list of potential pre-bid questions based on the tender document.",
+    summary: ["Provide a concise summary of the attached tender document."],
+    scrapping: ["Extract key information like deadlines, budget, and eligibility criteria from the document."],
+    searchWeb: ["Search the web for information related to this tender topic."],
+    details: ["Give me a detailed breakdown of the requirements and scope of work."],
+    preBid: ["Generate a list of potential pre-bid questions based on the tender document."],
   },
 };
 
@@ -96,9 +97,27 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     if (open) {
       try {
         const storedSettings = localStorage.getItem("tender-ai-settings");
-        const loadedSettings = storedSettings ? { ...defaultSettings, ...JSON.parse(storedSettings) } : defaultSettings;
-        setSettings(loadedSettings);
-        setInitialSettings(loadedSettings);
+        if (storedSettings) {
+            const parsed = JSON.parse(storedSettings);
+            // Ensure preBidQueries are arrays, providing backward compatibility
+            const migratedQueries = { ...defaultSettings.preBidQueries };
+            if (parsed.preBidQueries) {
+                for (const key in migratedQueries) {
+                    const queryKey = key as keyof typeof migratedQueries;
+                    if (typeof parsed.preBidQueries[queryKey] === 'string') {
+                         migratedQueries[queryKey] = [parsed.preBidQueries[queryKey]];
+                    } else if (Array.isArray(parsed.preBidQueries[queryKey])) {
+                        migratedQueries[queryKey] = parsed.preBidQueries[queryKey];
+                    }
+                }
+            }
+            const loadedSettings = { ...defaultSettings, ...parsed, preBidQueries: migratedQueries };
+            setSettings(loadedSettings);
+            setInitialSettings(loadedSettings);
+        } else {
+             setSettings(defaultSettings);
+             setInitialSettings(defaultSettings);
+        }
       } catch (e) {
         console.error('Failed to load settings from localStorage', e);
         setSettings(defaultSettings);
@@ -423,69 +442,65 @@ function PredefinedFiltersSettings({ settings, setSettings }: SettingsProps) {
 }
 
 function PreBidQueriesSettings({ settings, setSettings }: SettingsProps) {
-    const handleQueryChange = (key: keyof SettingsState['preBidQueries'], value: string) => {
+    type QueryKey = keyof SettingsState['preBidQueries'];
+    
+    const [newQueries, setNewQueries] = useState<Record<QueryKey, string>>({
+        summary: '',
+        scrapping: '',
+        details: '',
+        preBid: '',
+        searchWeb: '',
+    });
+
+    const handleInputChange = (key: QueryKey, value: string) => {
+        setNewQueries(s => ({ ...s, [key]: value }));
+    };
+
+    const handleAddQuery = (key: QueryKey) => {
+        const newQuery = newQueries[key].trim();
+        if (newQuery) {
+            setSettings(s => ({
+                ...s,
+                preBidQueries: {
+                    ...s.preBidQueries,
+                    [key]: [...s.preBidQueries[key], newQuery]
+                }
+            }));
+            setNewQueries(s => ({ ...s, [key]: '' }));
+        }
+    };
+
+    const handleRemoveQuery = (key: QueryKey, indexToRemove: number) => {
         setSettings(s => ({
             ...s,
             preBidQueries: {
                 ...s.preBidQueries,
-                [key]: value
+                [key]: s.preBidQueries[key].filter((_, index) => index !== indexToRemove)
             }
         }));
     };
-    
-    const mockPreBidQueries: Record<keyof SettingsState['preBidQueries'], string[]> = {
-      summary: [
-        "Summarize the key objectives of this tender.",
-        "What is the main scope of work for this project?",
-        "Provide a high-level overview of the tender requirements.",
-        "Condense the tender document into three main points.",
-        "Give me the executive summary for this tender."
-      ],
-      scrapping: [
-        "Extract all deadlines and submission dates.",
-        "List the eligibility and qualification criteria.",
-        "Find the estimated budget or project value.",
-        "Identify all contact persons and their details.",
-        "Pull out the required list of documents for submission."
-      ],
-      searchWeb: [
-        "Find similar projects awarded in the last 2 years.",
-        "Who are the key competitors for this type of tender?",
-        "What is the reputation of the tendering authority?",
-        "Search for news articles related to this project.",
-        "Find standard material costs for this region."
-      ],
-      details: [
-        "Provide a detailed breakdown of the technical specifications.",
-        "What are the payment terms and schedules?",
-        "List all penalties and liquidated damages clauses.",
-        "Explain the evaluation criteria in detail.",
-        "What are the insurance and bonding requirements?"
-      ],
-      preBid: [
-        "Generate questions regarding ambiguities in the scope of work.",
-        "Formulate clarification questions about the payment terms.",
-        "What are some potential risks we should ask about?",
-        "Create a list of questions for the pre-bid meeting.",
-        "Ask for clarification on the submission process."
-      ],
+
+    const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, key: QueryKey) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleAddQuery(key);
+        }
     };
 
     const querySections = [
-        { key: 'summary' as const, title: 'Summary Query', description: "Default query for the 'Summary' tool." },
-        { key: 'scrapping' as const, title: 'Scrapping Query', description: "Default query for the 'Scrapping' tool." },
-        { key: 'searchWeb' as const, title: 'Search the Web Query', description: "Default query for the 'Search the Web' tool." },
-        { key: 'details' as const, title: 'Details Query', description: "Default query for the 'Details' tool." },
-        { key: 'preBid' as const, title: 'Pre-Bid Queries Generation', description: "Default query for the 'Pre Bid Queries' tool." },
+        { key: 'summary' as const, title: 'Summary Queries', description: "Manage your saved queries for the 'Summary' tool." },
+        { key: 'scrapping' as const, title: 'Scrapping Queries', description: "Manage your saved queries for the 'Scrapping' tool." },
+        { key: 'searchWeb' as const, title: 'Search the Web Queries', description: "Manage your saved queries for the 'Search the Web' tool." },
+        { key: 'details' as const, title: 'Details Queries', description: "Manage your saved queries for the 'Details' tool." },
+        { key: 'preBid' as const, title: 'Pre-Bid Queries', description: "Manage your saved queries for generating pre-bid questions." },
     ];
-
 
     return (
         <div className="space-y-6">
             <SettingsItem title="Enable AI-assisted Pre-Bid Queries">
                 <Switch
                     checked={settings.preBidQueriesEnabled}
-                    onCheckedChange={(checked) => setSettings(s => ({...s, preBidQueriesEnabled: checked }))}
+                    onCheckedChange={(checked) => setSettings(s => ({ ...s, preBidQueriesEnabled: checked }))}
                 />
             </SettingsItem>
             
@@ -494,25 +509,48 @@ function PreBidQueriesSettings({ settings, setSettings }: SettingsProps) {
             <div className={cn("space-y-8", !settings.preBidQueriesEnabled && "opacity-50 pointer-events-none")}>
                 {querySections.map((section) => (
                     <div key={section.key}>
-                        <Label htmlFor={`${section.key}-query`} className="text-base font-semibold block mb-1">{section.title}</Label>
-                        <p className="text-sm text-zinc-400 mb-2">{section.description}</p>
-                        <Textarea
-                            id={`${section.key}-query`}
-                            value={settings.preBidQueries[section.key]}
-                            onChange={(e) => handleQueryChange(section.key, e.target.value)}
-                            className="bg-zinc-800 border-zinc-600 min-h-[80px]"
-                            disabled={!settings.preBidQueriesEnabled}
-                        />
-                         <div className="mt-4 space-y-2 text-sm text-zinc-400">
-                            <h4 className="font-medium text-zinc-300">Suggested Queries:</h4>
-                            {mockPreBidQueries[section.key].map((query, index) => (
-                                <div key={index} className="flex items-start gap-3">
-                                    <span className="flex items-center justify-center h-5 w-5 rounded-full bg-primary/20 text-primary font-bold text-xs shrink-0 mt-0.5">
-                                        {index + 1}
-                                    </span>
-                                    <p>{query}</p>
+                        <Label className="text-base font-semibold block mb-1">{section.title}</Label>
+                        <p className="text-sm text-zinc-400 mb-4">{section.description}</p>
+                        
+                        <div className="flex gap-2 mb-4">
+                            <Input
+                                id={`${section.key}-query-input`}
+                                value={newQueries[section.key]}
+                                onChange={(e) => handleInputChange(section.key, e.target.value)}
+                                onKeyDown={(e) => handleInputKeyDown(e, section.key)}
+                                placeholder="Add a new query..."
+                                className="bg-zinc-800 border-zinc-600"
+                                disabled={!settings.preBidQueriesEnabled}
+                            />
+                            <Button
+                                onClick={() => handleAddQuery(section.key)}
+                                disabled={!settings.preBidQueriesEnabled || !newQueries[section.key].trim()}
+                                className="bg-white text-black hover:bg-zinc-200"
+                            >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add
+                            </Button>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            {settings.preBidQueries[section.key].map((query, index) => (
+                                <div key={index} className="flex items-center justify-between gap-2 rounded-md border border-zinc-700 bg-zinc-800/50 p-3 text-sm">
+                                    <p className="flex-1 break-words">{query}</p>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7 shrink-0 text-zinc-400 hover:bg-zinc-700 hover:text-white"
+                                        onClick={() => handleRemoveQuery(section.key, index)}
+                                        disabled={!settings.preBidQueriesEnabled}
+                                    >
+                                        <X className="h-4 w-4" />
+                                        <span className="sr-only">Remove query</span>
+                                    </Button>
                                 </div>
                             ))}
+                             {settings.preBidQueries[section.key].length === 0 && (
+                                <p className="text-sm text-zinc-500 text-center py-2">No queries saved for this category.</p>
+                            )}
                         </div>
                     </div>
                 ))}
@@ -520,7 +558,6 @@ function PreBidQueriesSettings({ settings, setSettings }: SettingsProps) {
         </div>
     );
 }
-
 
 function SettingsItem({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (

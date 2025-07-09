@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { tenderQueryTool } from "@/ai/flows/tender-query-tool";
@@ -54,7 +55,7 @@ export function ChatInterface() {
   
   const [tags, setTags] = useState<string[]>([]);
   
-  const [predefinedQueries, setPredefinedQueries] = useState<Record<string, string>>({});
+  const [predefinedQueries, setPredefinedQueries] = useState<Record<string, string[]>>({});
   const [predefinedQueriesEnabled, setPredefinedQueriesEnabled] = useState(false);
 
   useEffect(() => {
@@ -304,20 +305,25 @@ export function ChatInterface() {
       
       <div className="p-2 sm:p-4 border-t bg-background/80 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto">
-          {predefinedQueriesEnabled && selectedTool && predefinedQueries[selectedTool.key] && (
-            <div className="mb-4">
-              <button
-                className="p-3 text-left border rounded-lg hover:bg-muted transition-colors w-full"
-                onClick={() => handleSuggestionQuery(predefinedQueries[selectedTool.key])}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  {React.createElement(selectedTool.icon, { className: "h-4 w-4 text-primary" })}
-                  <p className="text-sm font-semibold text-primary">{selectedTool.name}</p>
-                </div>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {predefinedQueries[selectedTool.key]}
-                </p>
-              </button>
+          {predefinedQueriesEnabled && selectedTool && predefinedQueries[selectedTool.key]?.length > 0 && (
+            <div className="mb-4 space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">Suggested Queries for '{selectedTool.name}':</p>
+              {predefinedQueries[selectedTool.key].map((query, index) => (
+                  <button
+                      key={index}
+                      className="p-3 text-left border rounded-lg hover:bg-muted transition-colors w-full"
+                      onClick={() => handleSuggestionQuery(query)}
+                  >
+                      <div className="flex items-start gap-2">
+                          <div className="flex-shrink-0 h-5 w-5 flex items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold mt-0.5">
+                            {index + 1}
+                          </div>
+                          <p className="text-sm text-foreground whitespace-pre-wrap">
+                              {query}
+                          </p>
+                      </div>
+                  </button>
+              ))}
             </div>
           )}
           
