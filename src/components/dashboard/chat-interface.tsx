@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/popover";
 import { CameraDialog } from "./camera-dialog";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 
 
 type Message = {
@@ -254,7 +255,6 @@ export function ChatInterface() {
   };
   
   const handleSuggestionQuery = (query: string) => {
-    setInput(query);
     submitQuery(query, attachment);
   }
 
@@ -306,24 +306,29 @@ export function ChatInterface() {
       <div className="p-2 sm:p-4 border-t bg-background/80 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto">
           {predefinedQueriesEnabled && selectedTool && predefinedQueries[selectedTool.key]?.length > 0 && (
-            <div className="mb-4 space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Suggested Queries for '{selectedTool.name}':</p>
-              {predefinedQueries[selectedTool.key].map((query, index) => (
-                  <button
-                      key={index}
-                      className="p-3 text-left border rounded-lg hover:bg-muted transition-colors w-full"
-                      onClick={() => handleSuggestionQuery(query)}
-                  >
-                      <div className="flex items-start gap-2">
-                          <div className="flex-shrink-0 h-5 w-5 flex items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold mt-0.5">
-                            {index + 1}
-                          </div>
-                          <p className="text-sm text-foreground whitespace-pre-wrap">
-                              {query}
-                          </p>
-                      </div>
-                  </button>
-              ))}
+             <div className="mb-4">
+              <Carousel
+                opts={{
+                  align: "start",
+                  dragFree: true,
+                }}
+                className="w-full"
+              >
+                <CarouselContent className="-ml-2">
+                  {predefinedQueries[selectedTool.key].map((query, index) => (
+                    <CarouselItem key={index} className="pl-2 basis-auto">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-auto py-1.5 px-3 whitespace-normal text-left font-normal"
+                        onClick={() => handleSuggestionQuery(query)}
+                      >
+                        {query}
+                      </Button>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
             </div>
           )}
           
