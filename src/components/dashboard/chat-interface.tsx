@@ -353,7 +353,7 @@ export function ChatInterface() {
       <div className="p-2 sm:p-4 border-t bg-background/80 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto">
           {predefinedQueriesEnabled && selectedTool && predefinedQueries[selectedTool.key]?.length > 0 && (
-             <div className="mb-2 sm:mb-4">
+             <div className="mb-2">
               <Carousel
                 opts={{
                   align: "start",
