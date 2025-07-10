@@ -21,13 +21,9 @@ import {
 import { CameraDialog } from "./camera-dialog";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import type { Message } from '@/hooks/use-chat';
+import { useChat } from '@/hooks/use-chat';
 
-
-type Message = {
-  id: string;
-  content: React.ReactNode;
-  role: "user" | "assistant";
-};
 
 type Tool = {
   name: string;
@@ -36,9 +32,16 @@ type Tool = {
 }
 
 export function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { 
+    activeConversation, 
+    addMessage,
+    isLoading,
+    setIsLoading,
+  } = useChat();
+
+  const messages = activeConversation?.messages ?? [];
+
   const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   
   const [showSuggestions, setShowSuggestions] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -74,6 +77,29 @@ export function ChatInterface() {
     } catch (e) {
       console.error('Failed to load settings from localStorage', e);
     }
+    
+    const handleSettingsUpdate = () => {
+       try {
+        const settingsString = localStorage.getItem('tender-ai-settings');
+        if (settingsString) {
+          const settings = JSON.parse(settingsString);
+          if (settings.preBidQueries) {
+            setPredefinedQueries(settings.preBidQueries);
+          }
+          if (typeof settings.preBidQueriesEnabled === 'boolean') {
+              setPredefinedQueriesEnabled(settings.preBidQueriesEnabled);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load settings from localStorage', e);
+      }
+    };
+
+    window.addEventListener('settings-updated', handleSettingsUpdate);
+    return () => {
+      window.removeEventListener('settings-updated', handleSettingsUpdate);
+    };
+
   }, []);
 
   const handleToolSelect = (tool: Tool) => {
@@ -150,6 +176,7 @@ export function ChatInterface() {
   };
 
   const highlightTags = (text: string) => {
+    if (typeof text !== 'string') return text;
     const parts = text.split(/(@[a-zA-Z]+)/g);
     return parts.map((part, index) => {
       if (part.startsWith('@')) {
@@ -161,6 +188,26 @@ export function ChatInterface() {
       return part;
     });
   };
+  
+  const renderMessageContent = (content: React.ReactNode) => {
+    if (typeof content === 'string') {
+        return <p>{highlightTags(content)}</p>;
+    }
+    if (React.isValidElement(content) && content.type === React.Fragment) {
+        const children = React.Children.toArray(content.props.children);
+        const imageChild = children.find((child: any) => child.type === Image);
+        const textChild = children.find((child: any) => child.type === 'p');
+
+        return (
+            <>
+                {imageChild}
+                {textChild && <p>{highlightTags(textChild.props.children)}</p>}
+            </>
+        );
+    }
+    return content;
+  };
+
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -182,7 +229,7 @@ export function ChatInterface() {
 
   const submitQuery = async (query: string, image?: string | null) => {
     const fullQuery = [...tags, query].join(' ').trim();
-    if ((!fullQuery && !image) || isLoading) return;
+    if ((!fullQuery && !image) || isLoading || !activeConversation) return;
 
     setIsLoading(true);
     const queryWithTool = selectedTool ? `${selectedTool.name}: ${fullQuery}` : fullQuery;
@@ -201,41 +248,41 @@ export function ChatInterface() {
             className="rounded-md mb-2 object-cover max-w-full h-auto"
           />
         )}
-        {fullQuery && <p>{highlightTags(queryWithTool)}</p>}
+        {fullQuery && <p>{queryWithTool}</p>}
       </>
     );
-
-    const userMessage: Message = {
+    
+    addMessage({
       id: Date.now().toString(),
       content: userMessageContent,
       role: "user",
-    };
-    setMessages((prev) => [...prev, userMessage]);
+    });
     setSelectedTool(null);
-
-    const loadingMessage: Message = {
-      id: (Date.now() + 1).toString(),
+    
+    // Add loading message immediately
+    const loadingMessageId = (Date.now() + 1).toString();
+     addMessage({
+      id: loadingMessageId,
       content: <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />,
       role: "assistant",
-    };
-    setMessages((prev) => [...prev, loadingMessage]);
+    });
 
     try {
       const result = await tenderQueryTool({ query: queryWithTool, imageDataUri: image || undefined });
       const assistantMessage: Message = {
-        id: loadingMessage.id,
-        content: <p>{result.tenderInfo}</p>,
+        id: loadingMessageId,
+        content: result.tenderInfo,
         role: "assistant",
       };
-      setMessages((prev) => prev.map(m => m.id === loadingMessage.id ? assistantMessage : m));
+      addMessage(assistantMessage, true); // Update the loading message
     } catch (error) {
       console.error("Error querying tender info:", error);
       const errorMessage: Message = {
-        id: loadingMessage.id,
+        id: loadingMessageId,
         content: <p className="text-destructive">Sorry, something went wrong. Please try again.</p>,
         role: "assistant",
       };
-       setMessages((prev) => prev.map(m => m.id === loadingMessage.id ? errorMessage : m));
+       addMessage(errorMessage, true); // Update the loading message
     } finally {
       setIsLoading(false);
     }
@@ -263,7 +310,7 @@ export function ChatInterface() {
       <header className="flex h-14 shrink-0 items-center gap-4 px-4 sm:px-6">
         <SidebarTrigger className="md:hidden" />
         <div className="flex-1">
-          <h1 className="text-lg font-semibold">TenderAI</h1>
+          <h1 className="text-lg font-semibold">{activeConversation?.title || 'TenderAI'}</h1>
         </div>
       </header>
 
@@ -290,7 +337,7 @@ export function ChatInterface() {
                 "break-words",
                 message.role === "user" ? "bg-primary text-primary-foreground" : "bg-card"
               )}>
-                {message.content}
+                {renderMessageContent(message.content)}
               </div>
               {message.role === "user" && (
                  <Avatar className="h-8 w-8">

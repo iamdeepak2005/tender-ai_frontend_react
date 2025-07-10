@@ -1,3 +1,6 @@
+
+"use client";
+
 import {
   SidebarHeader,
   SidebarGroup,
@@ -25,6 +28,7 @@ import {
 import Link from "next/link";
 import { UserNav } from "./user-nav";
 import { Button } from "../ui/button";
+import { useChat } from "@/hooks/use-chat";
 
 const mockTenders = [
   "Road Construction in California",
@@ -42,14 +46,8 @@ const mockLiveTenders = [
   "Live: Solar Panel Installation for Schools",
 ];
 
-const mockQueries = [
-  "Find tenders for road construction in California",
-  "Show me tenders with a budget over $2,000,000",
-  "List all bridge repair projects in Texas",
-  "What are the latest park development tenders?",
-];
-
 export function SidebarContent() {
+  const { conversations, activeConversationId, selectConversation, startNewConversation } = useChat();
   return (
     <>
       <SidebarHeader>
@@ -79,6 +77,7 @@ export function SidebarContent() {
             <Button
               variant="ghost"
               className="group-data-[state=collapsed]:h-8 group-data-[state=collapsed]:w-8 group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:p-0 w-full justify-start gap-2"
+              onClick={startNewConversation}
             >
               <PenSquare className="h-4 w-4 shrink-0" />
               <span className="group-data-[state=collapsed]:hidden">
@@ -89,6 +88,7 @@ export function SidebarContent() {
           <Accordion
             type="multiple"
             className="w-full"
+            defaultValue={["history"]}
           >
             <AccordionItem value="recent">
               <AccordionTrigger className="group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:px-2 [&>svg]:group-data-[state=collapsed]:hidden">
@@ -200,16 +200,19 @@ export function SidebarContent() {
                 </div>
               </AccordionTrigger>
               <AccordionContent className="group-data-[state=collapsed]:hidden">
-                <ul className="space-y-2 py-2 pl-6">
-                  {mockQueries.map((query, i) => (
+                 <ul className="space-y-2 py-2 pl-6">
+                  {conversations.filter(c => c.messages.length > 0).map((conversation) => (
                     <li
-                      key={`history-${i}`}
+                      key={conversation.id}
                       className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
                     >
                       <MessageSquare className="h-4 w-4 shrink-0" />
-                      <a href="#" className="truncate">
-                        {query}
-                      </a>
+                      <button 
+                        onClick={() => selectConversation(conversation.id)}
+                        className={`truncate text-left ${conversation.id === activeConversationId ? 'text-foreground font-semibold' : ''}`}
+                      >
+                        {conversation.title}
+                      </button>
                     </li>
                   ))}
                 </ul>
