@@ -307,7 +307,7 @@ export function ChatInterface() {
 
   return (
     <div className="relative flex h-full flex-col">
-      <header className="flex h-14 shrink-0 items-center gap-4 px-4 sm:px-6">
+      <header className="flex h-14 shrink-0 items-center gap-4 border-b bg-background px-4 sm:px-6">
         <SidebarTrigger className="md:hidden" />
         <div className="flex-1">
           <h1 className="text-lg font-semibold">{activeConversation?.title || 'TenderAI'}</h1>
@@ -326,21 +326,21 @@ export function ChatInterface() {
           {messages.map((message) => (
             <div key={message.id} className={cn("flex items-start gap-4", message.role === "user" ? "justify-end" : "")}>
               {message.role === "assistant" && (
-                <Avatar className="h-8 w-8 border">
+                <Avatar className="h-8 w-8 border shrink-0">
                    <div className="flex h-full w-full items-center justify-center bg-background">
                     <Icons.logo className="h-5 w-5 text-primary"/>
                    </div>
                 </Avatar>
               )}
               <div className={cn(
-                "max-w-[75%] rounded-lg p-3 text-sm shadow-sm",
+                "max-w-[85%] sm:max-w-[75%] rounded-lg p-3 text-sm shadow-sm",
                 "break-words",
                 message.role === "user" ? "bg-primary text-primary-foreground" : "bg-card"
               )}>
                 {renderMessageContent(message.content)}
               </div>
               {message.role === "user" && (
-                 <Avatar className="h-8 w-8">
+                 <Avatar className="h-8 w-8 shrink-0">
                   <AvatarImage src="https://placehold.co/100x100.png" alt="@user" data-ai-hint="person" />
                   <AvatarFallback>U</AvatarFallback>
                 </Avatar>
@@ -353,7 +353,7 @@ export function ChatInterface() {
       <div className="p-2 sm:p-4 border-t bg-background/80 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto">
           {predefinedQueriesEnabled && selectedTool && predefinedQueries[selectedTool.key]?.length > 0 && (
-             <div className="mb-4">
+             <div className="mb-2 sm:mb-4">
               <Carousel
                 opts={{
                   align: "start",
@@ -434,8 +434,8 @@ export function ChatInterface() {
                     disabled={isLoading || isListening}
                   />
                 </PopoverAnchor>
-                <div className="flex items-center justify-between p-2 border-t">
-                    <div className="flex items-center gap-1.5">
+                <div className="flex items-center justify-between p-1 sm:p-2 border-t">
+                    <div className="flex items-center gap-1">
                         <Popover>
                             <PopoverTrigger asChild>
                             <Button type="button" size="icon" variant="ghost">
@@ -478,7 +478,7 @@ export function ChatInterface() {
                         </Popover>
 
                         {selectedTool && (
-                            <div className="flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-sm text-secondary-foreground">
+                            <div className="hidden sm:flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-sm text-secondary-foreground">
                                 {React.createElement(selectedTool.icon, { className: "h-4 w-4" })}
                                 <span className="font-medium">{selectedTool.name}</span>
                                 <button
@@ -500,11 +500,12 @@ export function ChatInterface() {
                             variant={isListening ? 'destructive' : 'ghost'}
                             onClick={handleMicClick}
                             disabled={!isSpeechSupported || isLoading}
+                            className="hidden sm:inline-flex"
                         >
                             {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                             <span className="sr-only">{isListening ? 'Stop listening' : 'Start listening'}</span>
                         </Button>
-                        <Button type="submit" size="icon" className="rounded-full" disabled={isLoading || (!input.trim() && !attachment && tags.length === 0)}>
+                        <Button type="submit" size="icon" className="rounded-full shrink-0" disabled={isLoading || (!input.trim() && !attachment && tags.length === 0)}>
                             <ArrowUp className="h-4 w-4" />
                             <span className="sr-only">Send</span>
                         </Button>

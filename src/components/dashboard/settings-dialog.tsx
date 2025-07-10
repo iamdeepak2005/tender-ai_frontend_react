@@ -205,12 +205,12 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] grid-rows-[auto,1fr,auto] p-0 gap-0 dark bg-zinc-900 text-white border-zinc-700">
+      <DialogContent className="sm:max-w-4xl h-full sm:h-auto max-h-[95vh] sm:max-h-[90vh] flex flex-col sm:grid sm:grid-rows-[auto,1fr,auto] p-0 gap-0 dark bg-zinc-900 text-white border-zinc-700">
         <DialogHeader className="p-4 border-b border-zinc-700">
           <DialogTitle>Settings</DialogTitle>
         </DialogHeader>
-        <div className="flex overflow-hidden">
-          <nav className="w-1/3 md:w-1/4 border-r border-zinc-700 p-2 md:p-4 space-y-1 overflow-y-auto">
+        <div className="flex flex-col sm:flex-row flex-1 overflow-hidden">
+          <nav className="w-full sm:w-1/3 md:w-1/4 border-b sm:border-b-0 sm:border-r border-zinc-700 p-2 md:p-4 space-y-1 overflow-y-auto">
             {tabs.map((tab) => (
               <Button
                 key={tab.id}
@@ -223,14 +223,14 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               </Button>
             ))}
           </nav>
-          <div className="w-2/3 md:w-3/4 p-4 md:p-6 overflow-y-auto">
+          <div className="w-full sm:w-2/3 md:w-3/4 p-4 md:p-6 overflow-y-auto">
             {activeTab === "general" && <GeneralSettings settings={settings} setSettings={setSettings} />}
             {activeTab === "personalization" && <PersonalizationSettings settings={settings} setSettings={setSettings} />}
             {activeTab === "pre-defined-filters" && <PredefinedFiltersSettings settings={settings} setSettings={setSettings} />}
             {activeTab === "pre-bid-queries" && <PreBidQueriesSettings settings={settings} setSettings={setSettings} />}
           </div>
         </div>
-        <DialogFooter className="p-4 border-t border-zinc-700 justify-end">
+        <DialogFooter className="p-4 border-t border-zinc-700 justify-end mt-auto sm:mt-0">
           <Button variant="ghost" className="hover:bg-zinc-800" onClick={handleCancel}>Cancel</Button>
           <Button className="bg-white text-black hover:bg-zinc-200" onClick={handleSave}>Save</Button>
         </DialogFooter>
@@ -547,7 +547,7 @@ function PreBidQueriesSettings({ settings, setSettings }: SettingsProps) {
                         <Label className="text-base font-semibold block mb-1">{section.title}</Label>
                         <p className="text-sm text-zinc-400 mb-4">{section.description}</p>
                         
-                        <div className="flex gap-2 mb-4">
+                        <div className="flex flex-col sm:flex-row gap-2 mb-4">
                             <Input
                                 id={`${section.key}-query-input`}
                                 value={newQueries[section.key]}
@@ -560,7 +560,7 @@ function PreBidQueriesSettings({ settings, setSettings }: SettingsProps) {
                             <Button
                                 onClick={() => handleAddQuery(section.key)}
                                 disabled={!settings.preBidQueriesEnabled || !newQueries[section.key].trim()}
-                                className="bg-white text-black hover:bg-zinc-200"
+                                className="bg-white text-black hover:bg-zinc-200 shrink-0"
                             >
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add
@@ -596,12 +596,12 @@ function PreBidQueriesSettings({ settings, setSettings }: SettingsProps) {
 
 function SettingsItem({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between flex-wrap gap-4">
+    <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
       <div className="space-y-1">
         <h3 className="font-medium">{title}</h3>
         {description && <p className="text-sm text-zinc-400 max-w-md">{description}</p>}
       </div>
-      <div>
+      <div className="shrink-0">
         {children}
       </div>
     </div>
