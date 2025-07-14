@@ -2,7 +2,7 @@
 
 "use client";
 
-import { tenderQueryTool } from "@/ai/flows/tender-query-tool";
+// Tender query functionality removed
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -190,109 +190,312 @@ export function ChatInterface() {
   };
   
   const renderMessageContent = (content: React.ReactNode) => {
+    // Handle string content
     if (typeof content === 'string') {
-        return <p>{highlightTags(content)}</p>;
+      return <p>{highlightTags(content)}</p>;
     }
-    if (React.isValidElement(content) && content.type === React.Fragment) {
+    
+    // Handle React elements
+    if (React.isValidElement(content)) {
+      // If it's a Fragment, process its children
+      if (content.type === React.Fragment) {
         const children = React.Children.toArray(content.props.children);
-        const imageChild = children.find((child: any) => child.type === Image);
-        const textChild = children.find((child: any) => child.type === 'p');
-
-        return (
-            <>
-                {imageChild}
-                {textChild && <p>{highlightTags(textChild.props.children)}</p>}
-            </>
-        );
+        const processedChildren = children.map((child, index) => {
+          // If child is a string, highlight tags in it
+          if (typeof child === 'string') {
+            return <span key={index}>{highlightTags(child)}</span>;
+          }
+          // If child is a paragraph, process its content
+          if (React.isValidElement(child) && child.type === 'p') {
+            return <p key={index}>{highlightTags(child.props.children)}</p>;
+          }
+          // Otherwise return the child as is
+          return child;
+        });
+        return <>{processedChildren}</>;
+      }
+      
+      // For other React elements, return them as is
+      return content;
     }
-    return content;
+    
+    // For any other type of content, convert to string and render
+    return <p>{String(content)}</p>;
   };
 
+
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
+    try {
+      const files = event.target.files;
+      if (!files || files.length === 0) return;
+
+      // For preview purposes (keep the first file for preview)
+      const file = files[0];
       const reader = new FileReader();
       reader.onload = (e) => {
-        const dataUri = e.target?.result as string;
-        setAttachment(dataUri);
+        if (e.target?.result) {
+          const dataUri = e.target.result as string;
+          setAttachment(dataUri);
+        }
       };
-      reader.readDataURL(file);
+      reader.onerror = () => {
+        throw new Error('Failed to read file');
+      };
+      reader.readAsDataURL(file);
+      
+      // Store the files for later upload
+      setSelectedFiles(files);
+      
+      // Reset the input value to allow selecting the same file again
+      if (event.target) event.target.value = '';
+    } catch (error) {
+      console.error('Error handling file selection:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to process file';
+      addMessage({
+        id: Date.now().toString(),
+        content: <p>Error: {errorMessage}</p>,
+        role: 'assistant',
+      });
     }
-    if (event.target) event.target.value = '';
   };
 
+  const uploadFiles = async (files: FileList) => {
+    console.log("uploading files");
+    const formData = new FormData();
+    
+    // Add files to FormData - FastAPI expects a list of files with the same name 'files'
+    Array.from(files).forEach((file) => {
+      formData.append('files', file);
+    });
+  
+    // Add owner_id (required) and tender_id (optional) from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const tenderId = urlParams.get('tenderId') || urlParams.get('tender_id');
+    const ownerId = urlParams.get('ownerId') || urlParams.get('owner_id');
+    
+    if (!ownerId) {
+      throw new Error('owner_id is required');
+    }
+    
+    formData.append('owner_id', ownerId);
+    if (tenderId) {
+      formData.append('tender_id', tenderId);
+    }
+  
+    try {
+      const response = await fetch('http://localhost:8000/tenders/documents', {
+        method: 'POST',
+        body: formData,
+        // Don't set Content-Type header - let the browser set it with the boundary
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.detail || 
+          `Error uploading files: ${response.status} ${response.statusText}`
+        );
+      }
+  
+      const result = await response.json();
+      console.log('Files uploaded successfully:', result);
+      
+      // Add success message to the chat
+      addMessage({
+        id: Date.now().toString(),
+        content: `Uploaded ${files.length} file(s) successfully`,
+        role: 'assistant',
+      });
+  
+      return result; // Return the result for potential use in submitQuery
+  
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      
+      // Add error message to chat - ensure content is a valid React node
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      addMessage({
+        id: Date.now().toString(),
+        content: <p>Error uploading files: {errorMessage}</p>,
+        role: 'assistant',
+      });
+      throw error; // Re-throw to be caught by the caller
+    }
+  };
   const handleCameraCapture = (dataUri: string) => {
     setAttachment(dataUri);
     setIsCameraOpen(false);
   };
+  const getAuthToken = (): string | null => {
+    return sessionStorage.getItem('access_token');
+  };
+ // Add this state variable to track document IDs
+const [uploadedDocumentIds, setUploadedDocumentIds] = useState<number[]>([]);
 
-  const submitQuery = async (query: string, image?: string | null) => {
-    const fullQuery = [...tags, query].join(' ').trim();
-    if ((!fullQuery && !image) || isLoading || !activeConversation) return;
+// Modify the submitQuery function to handle existing and new documents
+const submitQuery = async (query: string, image?: string | null) => {
+  // Early exit if no files, no query, and no web search
+  if (!selectedFiles && !image && uploadedDocumentIds.length === 0 && !query.trim() && selectedTool?.key !== 'searchWeb') {
+    return;
+  }
 
-    setIsLoading(true);
-    const queryWithTool = selectedTool ? `${selectedTool.name}: ${fullQuery}` : fullQuery;
+  setIsLoading(true);
+  const token = getAuthToken();
+  let newDocumentIds: number[] = [];
+
+  try {
+    // 1️⃣ Upload files (if any) — regardless of tool selection
+    if (selectedFiles || image) {
+      const formData = new FormData();
+
+      if (selectedFiles && selectedFiles.length > 0) {
+        Array.from(selectedFiles).forEach((file) => {
+          formData.append('files', file);
+        });
+      } else if (image) {
+        const blob = await fetch(image).then(r => r.blob());
+        formData.append('files', blob, 'captured-image.jpg');
+      }
+
+      formData.append('owner_id', "1");
+
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const uploadResponse = await fetch('http://localhost:8000/tenders/documents', {
+        method: 'POST',
+        body: formData,
+        headers,
+      });
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Upload failed (${uploadResponse.status})`);
+      }
+
+      const uploadData = await uploadResponse.json();
+      newDocumentIds = uploadData.document_ids;
+      setUploadedDocumentIds(prev => [...prev, ...newDocumentIds]);
+
+      addMessage({
+        id: Date.now().toString(),
+        content: <p>✅ Documents uploaded successfully!</p>,
+        role: 'assistant',
+      });
+    }
+
+    // 2️⃣ Process query (if exists)
+    if (query.trim()) {
+      const messageId = Date.now().toString();
+      addMessage({
+        id: messageId,
+        content: <p>{query}</p>,
+        role: "user",
+      });
+
+      // 🛠️ Handle different tool selections
+      const allDocumentIds = [...uploadedDocumentIds, ...newDocumentIds];
+      let response;
+
+      if (selectedTool?.key === 'searchWeb') {
+        // 🔍 Web Search: POST /bids with prompt
+        response = await fetch('http://localhost:8000/tenders/bids', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ prompt: query }),
+        });
+
+        if (!response.ok) throw new Error(`Search failed (${response.status})`);
+
+        const searchData = await response.json();
+        const tableContent = (
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white border border-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {Object.keys(searchData).map((key) => (
+                    <th key={key} className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                      {key.replace(/_/g, ' ')}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  {Object.values(searchData).map((value: any, index) => (
+                    <td key={index} className="px-4 py-2 whitespace-nowrap text-sm text-gray-500 border-b">
+                      {value || 'Not Available'}
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        );
+
+        addMessage({
+          id: Date.now().toString(),
+          content: tableContent,
+          role: 'assistant',
+        });
+
+      } else {
+        // 📄 Other Tools (summary, details, etc.): GET /bids/{view}/
+        const view = selectedTool?.key || "summary"; // Fallback to 'summary'
+        const queryParams = new URLSearchParams();
+        queryParams.append("owner_id", "1");
+        queryParams.append("user_query", query);
+        allDocumentIds.forEach((id) => queryParams.append("document_ids", id.toString()));
+
+        response = await fetch(`http://localhost:8000/tenders/bids/${view}/?${queryParams.toString()}`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+
+        if (!response.ok) throw new Error(`Bids error (${response.status})`);
+
+        const answer = await response.text();
+        addMessage({
+          id: Date.now().toString(),
+          content: <p>{answer}</p>,
+          role: 'assistant',
+        });
+      }
+    }
+
+  } catch (error) {
+    console.error('Error in submitQuery:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    addMessage({
+      id: Date.now().toString(),
+      content: <p>❌ Error: {errorMessage}</p>,
+      role: 'assistant',
+    });
+  } finally {
+    setIsLoading(false);
+    setSelectedFiles(null);
     setInput("");
     setAttachment(null);
     setTags([]);
-    
-    const userMessageContent = (
-      <>
-        {image && (
-          <Image
-            src={image}
-            alt="Attachment"
-            width={200}
-            height={200}
-            className="rounded-md mb-2 object-cover max-w-full h-auto"
-          />
-        )}
-        {fullQuery && <p>{queryWithTool}</p>}
-      </>
-    );
-    
-    addMessage({
-      id: Date.now().toString(),
-      content: userMessageContent,
-      role: "user",
-    });
-    setSelectedTool(null);
-    
-    // Add loading message immediately
-    const loadingMessageId = (Date.now() + 1).toString();
-     addMessage({
-      id: loadingMessageId,
-      content: <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />,
-      role: "assistant",
-    });
-
-    try {
-      const result = await tenderQueryTool({ query: queryWithTool, imageDataUri: image || undefined });
-      const assistantMessage: Message = {
-        id: loadingMessageId,
-        content: result.tenderInfo,
-        role: "assistant",
-      };
-      addMessage(assistantMessage, true); // Update the loading message
-    } catch (error) {
-      console.error("Error querying tender info:", error);
-      const errorMessage: Message = {
-        id: loadingMessageId,
-        content: <p className="text-destructive">Sorry, something went wrong. Please try again.</p>,
-        role: "assistant",
-      };
-       addMessage(errorMessage, true); // Update the loading message
-    } finally {
-      setIsLoading(false);
-    }
+    // Keep selectedTool for continuity
   }
+};
 
+// Add a function to clear document IDs when needed (e.g., when starting a new conversation)
+const clearUploadedDocuments = () => {
+  setUploadedDocumentIds([]);
+};
+  
   const handleSubmit = (e: React.FormEvent<HTMLFormElement> | React.KeyboardEvent<HTMLTextAreaElement>) => {
     e.preventDefault();
     const trimmedInput = input.trim();
     const tagRegex = /^@[a-zA-Z]+\s+.+/;
-
+  
     if (tagRegex.test(trimmedInput)) {
         setTags(prev => [...prev, trimmedInput]);
         setInput('');
@@ -379,7 +582,18 @@ export function ChatInterface() {
             </div>
           )}
           
-          <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,.pdf,.doc,.docx" />
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileSelect} 
+            className="hidden" 
+            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" 
+            multiple
+            onClick={(e) => {
+              // Reset the value to allow selecting the same file again
+              (e.target as HTMLInputElement).value = '';
+            }}
+          />
           <CameraDialog open={isCameraOpen} onOpenChange={setIsCameraOpen} onCapture={handleCameraCapture} />
           
           {tags.length > 0 && (
