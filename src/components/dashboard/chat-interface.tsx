@@ -61,7 +61,59 @@ export function ChatInterface() {
   
   const [predefinedQueries, setPredefinedQueries] = useState<Record<string, string[]>>({});
   const [predefinedQueriesEnabled, setPredefinedQueriesEnabled] = useState(false);
+// Add this useEffect hook near your other useEffect hooks
+useEffect(() => {
+  const fetchPredefinedQuestions = async () => {
+    try {
+      const token = getAuthToken();
+      console.log("Fetching predefined questions...");
+      
+      const response = await fetch(
+        `http://localhost:8000/tenders/questions/?ownerid=1&category=1`,
+        {
+          method: 'GET',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+        }
+      );
 
+      if (!response.ok) {
+        throw new Error(`Failed to fetch predefined questions: ${response.status}`);
+      }
+
+      const questions = await response.json();
+      console.log("Predefined questions API called successfully");
+      console.log("Predefined questions:", questions);
+      
+      // You can add these questions to your chat if needed
+      // For example:
+      if (questions && questions.length > 0) {
+        addMessage({
+          id: `predefined-${Date.now()}`,
+          content: (
+            <div className="space-y-2">
+              <p className="font-semibold">Here are some predefined questions you might want to ask:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                {questions.map((q: any, index: number) => (
+                  <li key={index}>{q.question}</li>
+                ))}
+              </ul>
+            </div>
+          ),
+          role: 'assistant'
+        });
+      }
+
+    } catch (error) {
+      console.error("Error fetching predefined questions:", error);
+    }
+  };
+
+  // Call the function when the component mounts
+  fetchPredefinedQuestions();
+}, []); // Empty dependency array means this runs once on mount
   useEffect(() => {
     try {
       const settingsString = localStorage.getItem('tender-ai-settings');
@@ -336,8 +388,14 @@ const [uploadedDocumentIds, setUploadedDocumentIds] = useState<number[]>([]);
 
 // Modify the submitQuery function to handle existing and new documents
 const submitQuery = async (query: string, image?: string | null) => {
-  // Early exit if no files, no query, and no web search
-  if (!selectedFiles && !image && uploadedDocumentIds.length === 0 && !query.trim() && selectedTool?.key !== 'searchWeb') {
+  // Early exit if no files, no query, and no web search/pre-bid
+  if (
+    !selectedFiles && 
+    !image && 
+    uploadedDocumentIds.length === 0 && 
+    !query.trim() && 
+    !['searchWeb', 'preBid'].includes(selectedTool?.key || '')
+  ) {
     return;
   }
 
@@ -346,7 +404,7 @@ const submitQuery = async (query: string, image?: string | null) => {
   let newDocumentIds: number[] = [];
 
   try {
-    // 1️⃣ Upload files (if any) — regardless of tool selection
+    // 1️⃣ Upload files (if any) — required for preBid and other tools
     if (selectedFiles || image) {
       const formData = new FormData();
 
@@ -386,85 +444,144 @@ const submitQuery = async (query: string, image?: string | null) => {
       });
     }
 
-    // 2️⃣ Process query (if exists)
-    if (query.trim()) {
+    // 2️⃣ Process query (if exists) or pre-bid request
+    if (query.trim() || selectedTool?.key === 'preBid') {
       const messageId = Date.now().toString();
-      addMessage({
-        id: messageId,
-        content: <p>{query}</p>,
-        role: "user",
-      });
+      if (query.trim()) {
+        addMessage({
+          id: messageId,
+          content: <p>{query}</p>,
+          role: "user",
+        });
+      }
 
-      // 🛠️ Handle different tool selections
       const allDocumentIds = [...uploadedDocumentIds, ...newDocumentIds];
       let response;
 
-      if (selectedTool?.key === 'searchWeb') {
-        // 🔍 Web Search: POST /bids with prompt
-        response = await fetch('http://localhost:8000/tenders/bids', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ prompt: query }),
-        });
+      // 🛠️ Handle tool-specific logic
+      switch (selectedTool?.key) {
+        case 'searchWeb': {
+          // 🔍 Web Search: POST /bids with prompt
+          response = await fetch('http://localhost:8000/tenders/bids', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ prompt: query }),
+          });
 
-        if (!response.ok) throw new Error(`Search failed (${response.status})`);
+          if (!response.ok) throw new Error(`Search failed (${response.status})`);
 
-        const searchData = await response.json();
-        const tableContent = (
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-white border border-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  {Object.keys(searchData).map((key) => (
-                    <th key={key} className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                      {key.replace(/_/g, ' ')}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  {Object.values(searchData).map((value: any, index) => (
-                    <td key={index} className="px-4 py-2 whitespace-nowrap text-sm text-gray-500 border-b">
-                      {value || 'Not Available'}
-                    </td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        );
+          const searchData = await response.json();
+          const tableContent = (
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white border border-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {Object.keys(searchData).map((key) => (
+                      <th key={key} className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                        {key.replace(/_/g, ' ')}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    {Object.values(searchData).map((value: any, index) => (
+                      <td key={index} className="px-4 py-2 whitespace-nowrap text-sm text-gray-500 border-b">
+                        {value || 'Not Available'}
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          );
 
-        addMessage({
-          id: Date.now().toString(),
-          content: tableContent,
-          role: 'assistant',
-        });
+          addMessage({
+            id: Date.now().toString(),
+            content: tableContent,
+            role: 'assistant',
+          });
+          break;
+        }
 
-      } else {
-        // 📄 Other Tools (summary, details, etc.): GET /bids/{view}/
-        const view = selectedTool?.key || "summary"; // Fallback to 'summary'
-        const queryParams = new URLSearchParams();
-        queryParams.append("owner_id", "1");
-        queryParams.append("user_query", query);
-        allDocumentIds.forEach((id) => queryParams.append("document_ids", id.toString()));
+        case 'preBid': {
+          // ❓ Pre Bid Queries: GET /questions?category=0&document_id=... (multiple)
+          if (allDocumentIds.length === 0) {
+            throw new Error("No documents uploaded for pre-bid queries.");
+          }
 
-        response = await fetch(`http://localhost:8000/tenders/bids/${view}/?${queryParams.toString()}`, {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
+          const preBidQueryParams = new URLSearchParams();
+          preBidQueryParams.append("ownerid", "1");
+          preBidQueryParams.append("category", "0");
+          
+          // Append all document IDs as multiple document_id parameters
+          allDocumentIds.forEach(id => {
+            preBidQueryParams.append("document_id", id.toString());
+          });
 
-        if (!response.ok) throw new Error(`Bids error (${response.status})`);
+          response = await fetch(
+            `http://localhost:8000/tenders/questions/?${preBidQueryParams.toString()}`,
+            {
+              method: 'GET',
+              headers: { 'Authorization': `Bearer ${token}` },
+            }
+          );
 
-        const answer = await response.text();
-        addMessage({
-          id: Date.now().toString(),
-          content: <p>{answer}</p>,
-          role: 'assistant',
-        });
+          if (!response.ok) throw new Error(`Pre-bid query failed (${response.status})`);
+
+          const questionsData = await response.json();
+          
+          // Format response with document context
+          addMessage({
+            id: Date.now().toString(),
+            content: (
+              <div className="space-y-4">
+                <p className="font-semibold">📋 Pre-Bid Questions (Documents: {allDocumentIds.join(', ')})</p>
+                {Array.isArray(questionsData) ? (
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    {questionsData.map((question, idx) => (
+                      <div key={idx} className="mb-4 last:mb-0">
+                        <p className="font-medium text-blue-600">{question.question || 'Question'}</p>
+                        <p className="text-gray-700">{question.answer || 'No answer available'}</p>
+                        {question.reference && (
+                          <p className="text-sm text-gray-500 mt-1">Reference: {question.reference}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <pre className="bg-gray-50 p-4 rounded-lg overflow-x-auto">
+                    {JSON.stringify(questionsData, null, 2)}
+                  </pre>
+                )}
+              </div>
+            ),
+            role: 'assistant',
+          });
+          break;
+        }
+
+        default: {
+          // 📄 Other Tools (summary, details, etc.)
+          const view = selectedTool?.key || "summary";
+          const defaultQueryParams = new URLSearchParams();
+          defaultQueryParams.append("owner_id", "1");
+          defaultQueryParams.append("user_query", query);
+          allDocumentIds.forEach((id) => defaultQueryParams.append("document_ids", id.toString()));
+
+          response = await fetch(
+            `http://localhost:8000/tenders/bids/${view}/?${defaultQueryParams.toString()}`,
+            { method: 'GET', headers: { 'Authorization': `Bearer ${token}` } }
+          );
+
+          if (!response.ok) throw new Error(`Bids error (${response.status})`);
+          const answer = await response.text();
+          addMessage({ id: Date.now().toString(), content: <p>{answer}</p>, role: 'assistant' });
+          break;
+        }
       }
     }
 
@@ -485,8 +602,6 @@ const submitQuery = async (query: string, image?: string | null) => {
     // Keep selectedTool for continuity
   }
 };
-
-// Add a function to clear document IDs when needed (e.g., when starting a new conversation)
 const clearUploadedDocuments = () => {
   setUploadedDocumentIds([]);
 };
