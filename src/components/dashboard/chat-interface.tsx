@@ -69,6 +69,7 @@ useEffect(() => {
       console.log("Fetching predefined questions...");
       
       const response = await fetch(
+        
         `http://localhost:8000/tenders/questions/?ownerid=1&category=1`,
         {
           method: 'GET',
