@@ -498,8 +498,11 @@ const submitQuery = async (query: string, image?: string | null) => {
         const blob = await fetch(image).then(r => r.blob());
         formData.append('files', blob, 'captured-image.jpg');
       }
-
-      formData.append('owner_id', "1");
+      const owner = sessionStorage.getItem('user');
+      if (owner) {
+        const ownerid=JSON.parse(owner).id;
+        formData.append('owner_id', ownerid);
+      }
 
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
