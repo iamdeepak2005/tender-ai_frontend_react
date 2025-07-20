@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { Loader2, Mic, MicOff, Camera as CameraIcon, ImageUp, X, SlidersHorizontal, FileText, Info, HelpCircle, Plus, ArrowUp, FileSearch, Globe } from "lucide-react";
+import { Loader2, Mic, MicOff, Camera as CameraIcon, ImageUp, X, SlidersHorizontal, FileText, Info, HelpCircle, Plus, ArrowUp, FileSearch, Globe, Copy, Star, ThumbsUp, ThumbsDown } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { Icons } from "../icons";
@@ -23,7 +23,76 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import type { Message } from '@/hooks/use-chat';
 import { useChat } from '@/hooks/use-chat';
+import { useToast } from "@/hooks/use-toast";
+import { createRoot } from "react-dom/client";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
+const DangerousHTML = ({ html }: { html: string }) => {
+    // Attempt to create a table from the procurement details
+    const procurementDetailsRegex = /Procurement Details([\s\S]*?)Eligibility & Compliance/s;
+    const match = html.match(procurementDetailsRegex);
+
+    if (match && match[1]) {
+        const detailsContent = match[1];
+        const items = detailsContent.trim().split(/\n\s*\n/);
+        
+        const tableRows = items.map(item => {
+            const lines = item.trim().split('\n').map(l => l.trim()).filter(Boolean);
+            if (lines.length >= 3) {
+                const [name, quantity, specs] = lines;
+                return { name, quantity, specs };
+            }
+            return null;
+        }).filter(Boolean);
+        
+        if (tableRows.length > 0) {
+            const tableHtml = `
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 my-2">
+                    <thead class="bg-gray-50 dark:bg-gray-800">
+                        <tr>
+                            <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Item</th>
+                            <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Quantity</th>
+                            <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Specifications</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                        ${tableRows.map(row => `
+                            <tr>
+                                <td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">${row!.name}</td>
+                                <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${row!.quantity}</td>
+                                <td class="px-3 py-2 whitespace-normal text-sm text-gray-500 dark:text-gray-400">${row!.specs}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            // Reconstruct the HTML
+            const beforeDetails = html.substring(0, match.index! + "Procurement Details".length);
+            const afterDetails = html.substring(match.index! + match[0].length - "Eligibility & Compliance".length);
+            const finalHtml = `${beforeDetails}${tableHtml}<br/>${afterDetails}`;
+            
+            return <div dangerouslySetInnerHTML={{ __html: finalHtml }} />;
+        }
+    }
+  
+    // Fallback for original content or if table creation fails
+    return <div dangerouslySetInnerHTML={{ __html: html.replace(/(Eligibility & Compliance)/, '<br/>$1') }} />;
+};
+
+const getPlainText = (content: React.ReactNode): string => {
+  if (typeof content === 'string') {
+    return content;
+  }
+  if (React.isValidElement(content)) {
+    const tempDiv = document.createElement('div');
+    const root = createRoot(tempDiv);
+    root.render(content as React.ReactElement);
+    const text = tempDiv.innerText;
+    return text;
+  }
+  return 'Favorite Item';
+}
 
 type Tool = {
   name: string;
@@ -37,6 +106,8 @@ export function ChatInterface() {
     addMessage,
     isLoading,
     setIsLoading,
+    addFavorite,
+    favorites,
   } = useChat();
 
   const messages = activeConversation?.messages ?? [];
@@ -61,6 +132,7 @@ export function ChatInterface() {
   
   const [predefinedQueries, setPredefinedQueries] = useState<Record<string, string[]>>({});
   const [predefinedQueriesEnabled, setPredefinedQueriesEnabled] = useState(false);
+  const { toast } = useToast();
 // Add this useEffect hook near your other useEffect hooks
 useEffect(() => {
   const fetchPredefinedQuestions = async () => {
@@ -89,7 +161,7 @@ useEffect(() => {
       
       // You can add these questions to your chat if needed
       // For example:
-      if (questions && questions.length > 0) {
+      if (Array.isArray(questions) && questions.length > 0) {
         addMessage({
           id: `predefined-${Date.now()}`,
           content: (
@@ -275,6 +347,16 @@ useEffect(() => {
     return <p>{String(content)}</p>;
   };
 
+  const copyMessageToClipboard = (content: React.ReactNode) => {
+    const textToCopy = getPlainText(content);
+    
+    if (textToCopy) {
+        navigator.clipboard.writeText(textToCopy)
+            .then(() => toast({ title: 'Copied to clipboard!' }))
+            .catch(err => toast({ title: 'Failed to copy', variant: 'destructive' }));
+    }
+  };
+
 
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
 
@@ -458,6 +540,23 @@ const submitQuery = async (query: string, image?: string | null) => {
       const allDocumentIds = [...uploadedDocumentIds, ...newDocumentIds];
       let response;
 
+      const handleErrorResponse = async (response: Response) => {
+        const errorBody = await response.text();
+        try {
+          const errorJson = JSON.parse(errorBody);
+          if (errorJson.detail) {
+            if (Array.isArray(errorJson.detail)) {
+              return errorJson.detail.map((d: any) => d.msg).join(', ');
+            }
+            return errorJson.detail;
+          }
+        } catch (e) {
+          // Not a JSON response, return the raw text
+          return errorBody || `Request failed with status ${response.status}`;
+        }
+        return `Request failed with status ${response.status}`;
+      };
+
       // 🛠️ Handle tool-specific logic
       switch (selectedTool?.key) {
         case 'searchWeb': {
@@ -471,7 +570,10 @@ const submitQuery = async (query: string, image?: string | null) => {
             body: JSON.stringify({ prompt: query }),
           });
 
-          if (!response.ok) throw new Error(`Search failed (${response.status})`);
+          if (!response.ok) {
+            const errorMessage = await handleErrorResponse(response);
+            throw new Error(errorMessage);
+          }
 
           const searchData = await response.json();
           const tableContent = (
@@ -530,7 +632,10 @@ const submitQuery = async (query: string, image?: string | null) => {
             }
           );
 
-          if (!response.ok) throw new Error(`Pre-bid query failed (${response.status})`);
+          if (!response.ok) {
+            const errorMessage = await handleErrorResponse(response);
+            throw new Error(errorMessage);
+          }
 
           const questionsData = await response.json();
           
@@ -565,7 +670,6 @@ const submitQuery = async (query: string, image?: string | null) => {
         }
 
         default: {
-          // 📄 Other Tools (summary, details, etc.)
           const view = selectedTool?.key || "summary";
           const defaultQueryParams = new URLSearchParams();
           defaultQueryParams.append("owner_id", "1");
@@ -577,9 +681,29 @@ const submitQuery = async (query: string, image?: string | null) => {
             { method: 'GET', headers: { 'Authorization': `Bearer ${token}` } }
           );
 
-          if (!response.ok) throw new Error(`Bids error (${response.status})`);
-          const answer = await response.text();
-          addMessage({ id: Date.now().toString(), content: <p>{answer}</p>, role: 'assistant' });
+          if (!response.ok) {
+            const errorMessage = await handleErrorResponse(response);
+            throw new Error(errorMessage);
+          }
+
+          const answerText = await response.text();
+          let answerContent: React.ReactNode;
+          try {
+              const answerJson = JSON.parse(answerText);
+              if (answerJson && typeof answerJson.answer === 'string') {
+                  answerContent = <DangerousHTML html={answerJson.answer} />;
+              } else {
+                  answerContent = <DangerousHTML html={answerText} />;
+              }
+          } catch (e) {
+              answerContent = <DangerousHTML html={answerText} />;
+          }
+
+          addMessage({
+              id: Date.now().toString(),
+              content: answerContent,
+              role: 'assistant'
+          });
           break;
         }
       }
@@ -623,26 +747,32 @@ const clearUploadedDocuments = () => {
     submitQuery(query, attachment);
   }
 
+  const handleFavorite = (message: Message) => {
+    addFavorite(message);
+    toast({ title: 'Added to favorites!' });
+  };
+
+  const isFavorited = (messageId: string) => {
+    return favorites.some(fav => fav.id === messageId);
+  }
+
   return (
     <div className="relative flex h-full flex-col">
-      <header className="flex h-14 shrink-0 items-center gap-4 border-b bg-background px-4 sm:px-6">
-        <SidebarTrigger className="md:hidden" />
-        <div className="flex-1">
-          <h1 className="text-lg font-semibold">TenderAI</h1>
-        </div>
-      </header>
-
       <ScrollArea className="flex-1">
         <div className="space-y-6 p-4 sm:p-6 max-w-4xl mx-auto">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground pt-10 sm:pt-20">
               <Icons.logo className="h-16 w-16 mb-4 text-primary/30" />
-              <h2 className="text-xl sm:text-2xl font-semibold text-foreground">Welcome to TenderAI</h2>
-              <p>Start by asking a question or attaching a file below.</p>
+              <h2 className="text-xl sm:text-2xl font-semibold text-foreground">
+                Smarter Procurements Starts Here - Tender AI
+              </h2>
+              <p className="mt-2 text-md text-muted-foreground">
+                Brain Behind Tender
+              </p>
             </div>
           )}
           {messages.map((message) => (
-            <div key={message.id} className={cn("flex items-start gap-4", message.role === "user" ? "justify-end" : "")}>
+            <div key={message.id} className={cn("group flex items-start gap-4", message.role === "user" ? "justify-end" : "")}>
               {message.role === "assistant" && (
                 <Avatar className="h-8 w-8 border shrink-0">
                    <div className="flex h-full w-full items-center justify-center bg-background">
@@ -650,12 +780,64 @@ const clearUploadedDocuments = () => {
                    </div>
                 </Avatar>
               )}
-              <div className={cn(
-                "max-w-[85%] sm:max-w-[75%] rounded-lg p-3 text-sm shadow-sm",
-                "break-words",
-                message.role === "user" ? "bg-primary text-primary-foreground" : "bg-card"
-              )}>
-                {renderMessageContent(message.content)}
+              <div className="flex-grow max-w-[85%] sm:max-w-[75%]">
+                <div className={cn(
+                  "rounded-lg p-3 text-sm shadow-sm",
+                  "break-words",
+                  message.role === "user" ? "bg-primary text-primary-foreground" : "bg-card"
+                )}>
+                  {renderMessageContent(message.content)}
+                </div>
+                {message.role === "assistant" && (
+                    <div className="flex items-center gap-2 mt-2 text-muted-foreground">
+                       <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyMessageToClipboard(message.content)}>
+                                    <Copy className="h-4 w-4" />
+                                    <span className="sr-only">Copy</span>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Copy</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleFavorite(message)}>
+                                    <Star className={cn("h-4 w-4", isFavorited(message.id) && "fill-current text-yellow-400")} />
+                                    <span className="sr-only">Favorite</span>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Favorite</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                    <ThumbsUp className="h-4 w-4" />
+                                    <span className="sr-only">Like</span>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Like</p>
+                            </TooltipContent>
+                        </Tooltip>
+                         <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                    <ThumbsDown className="h-4 w-4" />
+                                    <span className="sr-only">Dislike</span>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Dislike</p>
+                            </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                )}
               </div>
               {message.role === "user" && (
                  <Avatar className="h-8 w-8 shrink-0">
@@ -753,7 +935,7 @@ const clearUploadedDocuments = () => {
                     value={input}
                     onChange={handleInputChange}
                     placeholder={selectedTool?.name || (isListening ? "Listening..." : "Ask anything, or type '@' for options...")}
-                    className="min-h-[60px] w-full resize-none border-0 bg-transparent p-3 shadow-none focus-visible:ring-0"
+                    className="min-h-[60px] w-full resize-none border-0 bg-transparent p-3 shadow-none focus-visible:ring-0 text-base"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();

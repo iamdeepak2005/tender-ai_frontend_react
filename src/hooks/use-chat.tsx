@@ -52,6 +52,8 @@ type ChatContextType = {
   selectConversation: (id: string) => void;
   startNewConversation: () => void;
   setIsLoading: (isLoading: boolean) => void;
+  favorites: Message[];
+  addFavorite: (message: Message) => void;
 };
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -76,11 +78,16 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [favorites, setFavorites] = useState<Message[]>([]);
 
   useEffect(() => {
-    // Load conversations from local storage on initial render
     const savedConversations = getFromLocalStorage<Conversation[]>('chat-conversations', []);
     const savedActiveId = getFromLocalStorage<string | null>('chat-active-id', null);
+    const savedFavorites = getFromLocalStorage<Message[]>('chat-favorites', []);
+
+    if (savedFavorites.length > 0) {
+      setFavorites(savedFavorites);
+    }
     
     if (savedConversations.length > 0) {
       setConversations(savedConversations);
@@ -90,17 +97,16 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         setActiveConversationId(savedConversations[0].id);
       }
     } else {
-      // Start with a new conversation if none are saved
       startNewConversation();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    // Save conversations to local storage whenever they change
     setToLocalStorage('chat-conversations', conversations);
     setToLocalStorage('chat-active-id', activeConversationId);
-  }, [conversations, activeConversationId]);
+    setToLocalStorage('chat-favorites', favorites);
+  }, [conversations, activeConversationId, favorites]);
 
   const startNewConversation = () => {
     const newConversation: Conversation = {
@@ -126,7 +132,6 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
             ? conv.messages.map(m => (m.id === message.id ? message : m))
             : [...conv.messages, message];
 
-          // Update title with the first user message
           let newTitle = conv.title;
           if (conv.messages.length === 0 && message.role === 'user') {
             newTitle = generateTitle(message.content);
@@ -137,6 +142,16 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         return conv;
       })
     );
+  };
+
+  const addFavorite = (message: Message) => {
+    setFavorites(prev => {
+      // Prevent duplicates
+      if (prev.some(fav => fav.id === message.id)) {
+        return prev.filter(fav => fav.id !== message.id);
+      }
+      return [...prev, message];
+    });
   };
   
   const activeConversation = conversations.find(c => c.id === activeConversationId) || null;
@@ -152,6 +167,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         selectConversation,
         startNewConversation,
         setIsLoading,
+        favorites,
+        addFavorite,
       }}
     >
       {children}

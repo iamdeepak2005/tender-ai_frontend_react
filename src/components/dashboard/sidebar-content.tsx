@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import {
@@ -29,6 +30,9 @@ import Link from "next/link";
 import { UserNav } from "./user-nav";
 import { Button } from "../ui/button";
 import { useChat } from "@/hooks/use-chat";
+import React from "react";
+import { createRoot } from "react-dom/client";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const mockTenders = [
   "Road Construction in California",
@@ -46,8 +50,22 @@ const mockLiveTenders = [
   "Live: Solar Panel Installation for Schools",
 ];
 
+const getPlainText = (content: React.ReactNode): string => {
+  if (typeof content === 'string') {
+    return content;
+  }
+  if (React.isValidElement(content)) {
+    const tempDiv = document.createElement('div');
+    const root = createRoot(tempDiv);
+    root.render(content as React.ReactElement);
+    const text = tempDiv.innerText;
+    return text;
+  }
+  return 'Favorite Item';
+}
+
 export function SidebarContent() {
-  const { conversations, activeConversationId, selectConversation, startNewConversation } = useChat();
+  const { conversations, activeConversationId, selectConversation, startNewConversation, favorites } = useChat();
   return (
     <>
       <SidebarHeader>
@@ -88,7 +106,7 @@ export function SidebarContent() {
           <Accordion
             type="multiple"
             className="w-full"
-            defaultValue={["history"]}
+            defaultValue={["history", "favorite"]}
           >
             <AccordionItem value="recent">
               <AccordionTrigger className="group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:px-2 [&>svg]:group-data-[state=collapsed]:hidden">
@@ -150,16 +168,30 @@ export function SidebarContent() {
                 </div>
               </AccordionTrigger>
               <AccordionContent className="group-data-[state=collapsed]:hidden">
-                <ul className="space-y-2 py-2 pl-6">
-                  {mockTenders.map((tender, i) => (
-                    <li
-                      key={`fav-${i}`}
+                 <ul className="space-y-2 py-2 pl-6">
+                  {favorites.length === 0 && (
+                    <li className="text-sm text-muted-foreground italic">No favorites yet.</li>
+                  )}
+                  {favorites.map((fav) => (
+                     <li
+                      key={fav.id}
                       className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
                     >
                       <FileText className="h-4 w-4 shrink-0" />
-                      <a href="#" className="truncate">
-                        {tender}
-                      </a>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                             <span className="truncate cursor-default">
+                              {getPlainText(fav.content).split(' ').slice(0, 5).join(' ') + '...'}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="right" align="start">
+                            <div className="max-w-xs p-2">
+                              {typeof fav.content === 'string' ? <p>{fav.content}</p> : fav.content}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </li>
                   ))}
                 </ul>

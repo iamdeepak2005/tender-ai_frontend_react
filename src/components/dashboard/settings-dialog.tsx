@@ -205,17 +205,17 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-4xl h-full sm:h-auto max-h-[95vh] sm:max-h-[90vh] flex flex-col sm:grid sm:grid-rows-[auto,1fr,auto] p-0 gap-0 dark bg-zinc-900 text-white border-zinc-700">
-        <DialogHeader className="p-4 border-b border-zinc-700">
+      <DialogContent className="sm:max-w-4xl h-full sm:h-auto max-h-[95vh] sm:max-h-[90vh] flex flex-col sm:grid sm:grid-rows-[auto,1fr,auto] p-0 gap-0">
+        <DialogHeader className="p-4 border-b">
           <DialogTitle>Settings</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col sm:flex-row flex-1 overflow-hidden">
-          <nav className="w-full sm:w-1/3 md:w-1/4 border-b sm:border-b-0 sm:border-r border-zinc-700 p-2 md:p-4 space-y-1 overflow-y-auto">
+          <nav className="w-full sm:w-1/3 md:w-1/4 border-b sm:border-b-0 sm:border-r p-2 md:p-4 space-y-1 overflow-y-auto">
             {tabs.map((tab) => (
               <Button
                 key={tab.id}
                 variant={activeTab === tab.id ? "secondary" : "ghost"}
-                className="w-full justify-start hover:bg-zinc-800 data-[state=active]:bg-zinc-800"
+                className="w-full justify-start"
                 onClick={() => setActiveTab(tab.id as TabId)}
               >
                 <tab.icon className="mr-2 h-4 w-4" />
@@ -230,9 +230,9 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             {activeTab === "pre-bid-queries" && <PreBidQueriesSettings settings={settings} setSettings={setSettings} />}
           </div>
         </div>
-        <DialogFooter className="p-4 border-t border-zinc-700 justify-end mt-auto sm:mt-0">
-          <Button variant="ghost" className="hover:bg-zinc-800" onClick={handleCancel}>Cancel</Button>
-          <Button className="bg-white text-black hover:bg-zinc-200" onClick={handleSave}>Save</Button>
+        <DialogFooter className="p-4 border-t justify-end mt-auto sm:mt-0">
+          <Button variant="ghost" onClick={handleCancel}>Cancel</Button>
+          <Button onClick={handleSave}>Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -252,7 +252,7 @@ function GeneralSettings({ settings, setSettings }: SettingsProps) {
           value={settings.theme}
           onValueChange={(value: "system" | "dark" | "light") => setSettings(s => ({...s, theme: value}))}
         >
-          <SelectTrigger className="w-[180px] bg-zinc-800 border-zinc-600">
+          <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Theme" />
           </SelectTrigger>
           <SelectContent>
@@ -263,14 +263,14 @@ function GeneralSettings({ settings, setSettings }: SettingsProps) {
         </Select>
       </SettingsItem>
 
-      <Separator className="bg-zinc-700"/>
+      <Separator />
 
       <SettingsItem title="Language" description="">
         <Select 
           value={settings.language}
           onValueChange={(value: string) => setSettings(s => ({...s, language: value}))}
         >
-          <SelectTrigger className="w-[180px] bg-zinc-800 border-zinc-600">
+          <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Language" />
           </SelectTrigger>
           <SelectContent>
@@ -281,14 +281,14 @@ function GeneralSettings({ settings, setSettings }: SettingsProps) {
         </Select>
       </SettingsItem>
 
-      <Separator className="bg-zinc-700"/>
+      <Separator />
 
       <SettingsItem title="Spoken language" description="For best results, select the language you mainly speak. If it's not listed, it may still be supported via auto-detection.">
         <Select 
             value={settings.spokenLanguage}
             onValueChange={(value: string) => setSettings(s => ({...s, spokenLanguage: value}))}
         >
-          <SelectTrigger className="w-[180px] bg-zinc-800 border-zinc-600">
+          <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Spoken language" />
           </SelectTrigger>
           <SelectContent>
@@ -299,11 +299,11 @@ function GeneralSettings({ settings, setSettings }: SettingsProps) {
         </Select>
       </SettingsItem>
 
-      <Separator className="bg-zinc-700"/>
+      <Separator />
 
       <SettingsItem title="Voice" description="">
         <div className="flex items-center gap-2">
-            <Button variant="outline" className="bg-zinc-800 border-zinc-600 hover:bg-zinc-700">
+            <Button variant="outline">
                 <Play className="h-4 w-4 mr-2"/>
                 Play
             </Button>
@@ -311,7 +311,7 @@ function GeneralSettings({ settings, setSettings }: SettingsProps) {
                 value={settings.voice}
                 onValueChange={(value: string) => setSettings(s => ({...s, voice: value}))}
             >
-                <SelectTrigger className="w-[180px] bg-zinc-800 border-zinc-600">
+                <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Voice" />
                 </SelectTrigger>
                 <SelectContent>
@@ -322,7 +322,7 @@ function GeneralSettings({ settings, setSettings }: SettingsProps) {
         </div>
       </SettingsItem>
       
-      <Separator className="bg-zinc-700"/>
+      <Separator />
 
       <SettingsItem title="Show follow up suggestions in chats" description="">
         <Switch 
@@ -340,14 +340,14 @@ function PersonalizationSettings({ settings, setSettings }: SettingsProps) {
             <div className="space-y-4">
                 <h2 className="text-xl font-semibold">Customization</h2>
                 <SettingsItem title="Custom instructions">
-                    <Button variant="ghost" className="flex items-center gap-1 text-zinc-400 p-0 h-auto hover:text-white" onClick={() => setSettings(s => ({...s, customInstructionsOn: !s.customInstructionsOn}))}>
+                    <Button variant="ghost" className="flex items-center gap-1 text-muted-foreground p-0 h-auto hover:text-foreground" onClick={() => setSettings(s => ({...s, customInstructionsOn: !s.customInstructionsOn}))}>
                         <span>{settings.customInstructionsOn ? 'On' : 'Off'}</span>
                         <ChevronRight className="h-4 w-4" />
                     </Button>
                 </SettingsItem>
             </div>
 
-            <Separator className="bg-zinc-700" />
+            <Separator />
             
             <div className="space-y-4">
                 <div className="flex items-center gap-2">
@@ -355,9 +355,9 @@ function PersonalizationSettings({ settings, setSettings }: SettingsProps) {
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger>
-                                <HelpCircle className="h-4 w-4 text-zinc-400" />
+                                <HelpCircle className="h-4 w-4 text-muted-foreground" />
                             </TooltipTrigger>
-                            <TooltipContent className="bg-zinc-800 text-white border-zinc-700 max-w-xs">
+                            <TooltipContent className="max-w-xs">
                                 <p>Memory helps TenderAI remember details from your conversations to be more helpful. You control it.</p>
                             </TooltipContent>
                         </Tooltip>
@@ -377,14 +377,14 @@ function PersonalizationSettings({ settings, setSettings }: SettingsProps) {
                         />
                     </SettingsItem>
                     <SettingsItem title="Manage memories">
-                        <Button variant="outline" className="bg-zinc-800 border-zinc-600 hover:bg-zinc-700">Manage</Button>
+                        <Button variant="outline">Manage</Button>
                     </SettingsItem>
                 </div>
             </div>
 
-            <p className="text-xs text-zinc-500 !mt-8">
+            <p className="text-xs text-muted-foreground !mt-8">
                 TenderAI may use Memory to personalize queries to search providers.{" "}
-                <a href="#" className="underline hover:text-zinc-400">
+                <a href="#" className="underline hover:text-foreground">
                 Learn more
                 </a>
             </p>
@@ -414,11 +414,11 @@ function PredefinedFiltersSettings({ settings, setSettings }: SettingsProps) {
     };
 
     const colors = [
-        "bg-blue-500/20 text-blue-300 border border-blue-500/30",
-        "bg-green-500/20 text-green-300 border border-green-500/30",
-        "bg-purple-500/20 text-purple-300 border border-purple-500/30",
-        "bg-orange-500/20 text-orange-300 border border-orange-500/30",
-        "bg-pink-500/20 text-pink-300 border border-pink-500/30",
+        "bg-blue-500/20 text-blue-500 dark:text-blue-300 border border-blue-500/30",
+        "bg-green-500/20 text-green-600 dark:text-green-300 border border-green-500/30",
+        "bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-500/30",
+        "bg-orange-500/20 text-orange-600 dark:text-orange-300 border border-orange-500/30",
+        "bg-pink-500/20 text-pink-600 dark:text-pink-300 border border-pink-500/30",
     ];
 
     return (
@@ -430,16 +430,16 @@ function PredefinedFiltersSettings({ settings, setSettings }: SettingsProps) {
                 />
             </SettingsItem>
             
-            <Separator className="bg-zinc-700"/>
+            <Separator />
             
             <div>
                 <Label htmlFor="filter-input" className="text-base font-semibold block mb-1">Your Filters</Label>
-                <p className="text-sm text-zinc-400 mb-4">
+                <p className="text-sm text-muted-foreground mb-4">
                     Type a filter and press space, comma, or Enter to add it.
                 </p>
                 <div className={cn(
-                    "flex flex-wrap items-center gap-2 rounded-md border border-zinc-600 bg-zinc-800 p-2 min-h-[44px]",
-                    !settings.predefinedFiltersEnabled && "opacity-50 bg-zinc-700/50 cursor-not-allowed"
+                    "flex flex-wrap items-center gap-2 rounded-md border bg-background p-2 min-h-[44px]",
+                    !settings.predefinedFiltersEnabled && "opacity-50 bg-muted cursor-not-allowed"
                 )}>
                     {settings.predefinedFilters.map((filter, index) => (
                         <div
@@ -452,7 +452,7 @@ function PredefinedFiltersSettings({ settings, setSettings }: SettingsProps) {
                             <span>{filter}</span>
                             <button
                                 onClick={() => removeFilter(filter)}
-                                className="rounded-full hover:bg-black/20 focus:outline-none focus:ring-2 focus:ring-zinc-400 disabled:cursor-not-allowed"
+                                className="rounded-full hover:bg-black/20 focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed"
                                 disabled={!settings.predefinedFiltersEnabled}
                             >
                                 <X className="h-4 w-4" />
@@ -467,7 +467,7 @@ function PredefinedFiltersSettings({ settings, setSettings }: SettingsProps) {
                         onChange={(e) => setFilterInput(e.target.value)}
                         onKeyDown={handleFilterKeyDown}
                         placeholder={settings.predefinedFilters.length === 0 ? "e.g., chennai, plumber" : ""}
-                        className="flex-1 bg-transparent p-1 text-sm text-white placeholder-zinc-500 outline-none min-w-[120px]"
+                        className="flex-1 bg-transparent p-1 text-sm placeholder-muted-foreground outline-none min-w-[120px]"
                         disabled={!settings.predefinedFiltersEnabled}
                     />
                 </div>
@@ -539,13 +539,13 @@ function PreBidQueriesSettings({ settings, setSettings }: SettingsProps) {
                 />
             </SettingsItem>
             
-            <Separator className="bg-zinc-700"/>
+            <Separator />
 
             <div className={cn("space-y-8", !settings.preBidQueriesEnabled && "opacity-50 pointer-events-none")}>
                 {querySections.map((section) => (
                     <div key={section.key}>
                         <Label className="text-base font-semibold block mb-1">{section.title}</Label>
-                        <p className="text-sm text-zinc-400 mb-4">{section.description}</p>
+                        <p className="text-sm text-muted-foreground mb-4">{section.description}</p>
                         
                         <div className="flex flex-col sm:flex-row gap-2 mb-4">
                             <Input
@@ -554,13 +554,12 @@ function PreBidQueriesSettings({ settings, setSettings }: SettingsProps) {
                                 onChange={(e) => handleInputChange(section.key, e.target.value)}
                                 onKeyDown={(e) => handleInputKeyDown(e, section.key)}
                                 placeholder="Add a new query..."
-                                className="bg-zinc-800 border-zinc-600"
                                 disabled={!settings.preBidQueriesEnabled}
                             />
                             <Button
                                 onClick={() => handleAddQuery(section.key)}
                                 disabled={!settings.preBidQueriesEnabled || !newQueries[section.key].trim()}
-                                className="bg-white text-black hover:bg-zinc-200 shrink-0"
+                                className="shrink-0"
                             >
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add
@@ -569,12 +568,12 @@ function PreBidQueriesSettings({ settings, setSettings }: SettingsProps) {
                         
                         <div className="space-y-2">
                             {settings.preBidQueries[section.key].map((query, index) => (
-                                <div key={index} className="flex items-center justify-between gap-2 rounded-md border border-zinc-700 bg-zinc-800/50 p-3 text-sm">
+                                <div key={index} className="flex items-center justify-between gap-2 rounded-md border bg-muted/50 p-3 text-sm">
                                     <p className="flex-1 break-words">{query}</p>
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-7 w-7 shrink-0 text-zinc-400 hover:bg-zinc-700 hover:text-white"
+                                        className="h-7 w-7 shrink-0 text-muted-foreground hover:bg-muted hover:text-foreground"
                                         onClick={() => handleRemoveQuery(section.key, index)}
                                         disabled={!settings.preBidQueriesEnabled}
                                     >
@@ -584,7 +583,7 @@ function PreBidQueriesSettings({ settings, setSettings }: SettingsProps) {
                                 </div>
                             ))}
                              {settings.preBidQueries[section.key].length === 0 && (
-                                <p className="text-sm text-zinc-500 text-center py-2">No queries saved for this category.</p>
+                                <p className="text-sm text-muted-foreground text-center py-2">No queries saved for this category.</p>
                             )}
                         </div>
                     </div>
@@ -599,7 +598,7 @@ function SettingsItem({ title, description, children }: { title: string; descrip
     <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
       <div className="space-y-1">
         <h3 className="font-medium">{title}</h3>
-        {description && <p className="text-sm text-zinc-400 max-w-md">{description}</p>}
+        {description && <p className="text-sm text-muted-foreground max-w-md">{description}</p>}
       </div>
       <div className="shrink-0">
         {children}

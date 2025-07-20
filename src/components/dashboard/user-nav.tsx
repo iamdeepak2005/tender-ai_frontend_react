@@ -16,11 +16,17 @@ import {
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { SettingsDialog } from "./settings-dialog";
+import { logout } from "@/lib/auth";
 
 export function UserNav() {
   const router = useRouter();
   const { state } = useSidebar();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    router.push("/");
+  };
 
   return (
     <>
@@ -64,7 +70,7 @@ export function UserNav() {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
+            <DropdownMenuItem onClick={() => router.push('/dashboard/profile')}>
               Profile
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
@@ -72,7 +78,7 @@ export function UserNav() {
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => router.push("/")}>
+          <DropdownMenuItem onClick={handleLogout}>
             Log out
           </DropdownMenuItem>
         </DropdownMenuContent>
